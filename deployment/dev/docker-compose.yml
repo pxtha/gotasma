@@ -1,0 +1,50 @@
+version: '3'
+
+services:
+  mongodb:
+    image: mongo:latest
+    hostname: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - /opt/data/mongo_home:/data/db
+    restart: always
+
+  backend:
+    image: realize:${REALIZE_VERSION}
+    hostname: backend
+    ports:
+      - "8080:8080"
+      - "8082:8082" 
+      - "443:443"
+    environment:
+      - GO111MODULE=on
+
+      - HTTP_READ_TIMEOUT=${HTTP_READ_TIMEOUT}
+      - HTTP_WRITE_TIMEOUT=${HTTP_WRITE_TIMEOUT}
+      - HTTP_READ_HEADER_TIMEOUT=${HTTP_READ_HEADER_TIMEOUT}
+      - HTTP_SHUTDOWN_TIMEOUT=${HTTP_SHUTDOWN_TIMEOUT}
+      - PORT=${PORT}
+      - HTTP_HOST=${HTTP_HOST}
+      - HTTP_ALLOWED_ORIGINS=${HTTP_ALLOWED_ORIGINS}
+      - HTTP_PORT=${HTTP_PORT}
+      # DB
+      - MONGODB_ADDRS=${MONGODB_ADDRS}
+      - MONGODB_DATABASE=${MONGODB_DATABASE}
+      - MONGODB_USERNAME=${MONGODB_USERNAME}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - MONGODB_TIMEOUT=${MONGODB_TIMEOUT}
+    
+    volumes:
+      - ../../.realize.yaml:/home/praslar/Code/Workspace/src/praslar.com/gotasma/.realize.yaml
+      - ../../main.go:/home/praslar/Code/Workspace/src/praslar.com/gotasma/main.go
+      - ../../go.mod:/home/praslar/Code/Workspace/src/praslar.com/gotasma/go.mod
+      - ../../go.sum:/home/praslar/Code/Workspace/src/praslar.com/gotasma/go.sum
+      - ../../internal:/home/praslar/Code/Workspace/src/praslar.com/gotasma/internal/
+      - ../../configs:/home/praslar/Code/Workspace/src/praslar.com/gotasma/configs
+      - ../scripts:/scripts
+    working_dir: /home/praslar/Code/Workspace/src/praslar.com/gotasma
+    entrypoint: [ "sh", "-c", "/scripts/wait-for.sh mongodb:27017 --timeout=5 -- realize start" ]
+    depends_on:
+      - mongodb
+    restart: always

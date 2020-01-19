@@ -1,0 +1,26 @@
+settings:
+  legacy:
+    force: false
+    interval: 0s
+    server:
+      status: true
+      open: false
+      port: 8082
+      host: ""
+schema:
+- name: backend
+  path: /home/praslar/Code/Workspace/src/praslar.com/gotasma
+  commands:
+    run:
+      status: true
+  watcher:
+    extensions:
+    - go
+    - mod
+    - sum
+    paths:
+    - /
+    ignored_paths:
+    - .git
+    - vendor
+    - web

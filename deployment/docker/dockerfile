@@ -1,0 +1,8 @@
+FROM alpine:3.8
+
+WORKDIR /home/
+COPY gotasma.bin ./
+RUN chmod +x gotasma.bin
+
+EXPOSE 8080
+CMD ["./gotasma.bin"]
