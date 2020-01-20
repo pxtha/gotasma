@@ -26,9 +26,11 @@ func NewMongoDBRespository(session *mgo.Session) *MongoDBRepository {
 func (r *MongoDBRepository) Create(ctx context.Context, user *types.User) (string, error) {
 	s := r.session.Clone()
 	defer s.Close()
+
 	user.ID = db.NewID()
 	user.CreatedAt = timeutil.Now()
 	user.UpdateAt = user.CreatedAt
+	user.ProjectID = []string{}
 
 	if err := r.collection(s).Insert(user); err != nil {
 		return "", err

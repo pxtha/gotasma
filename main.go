@@ -9,6 +9,15 @@ import (
 
 func main() {
 
+	// env := flag.String("env", "", "env file")
+	// flag.Parse()
+	// if *env != "" {
+	// 	if err := envconfig.SetEnvFromFile(*env); err != nil {
+	// 		logrus.Panicf("failed to set env, err: %v", err)
+	// 	}
+	// }
+	// logrus.Infof("initializing HTTP routing...")
+
 	router, err := api.NewRouter()
 	if err != nil {
 		logrus.Panic("Cannot init Router, err: ", err)

@@ -3,10 +3,12 @@ package types
 import "time"
 
 const (
+	//PM Project manager
 	PM Role = iota
+	//DEV Developer
 	DEV
+	//TEMP Anonymous dev
 	TEMP
-	ADMIN
 )
 
 type (
@@ -19,7 +21,8 @@ type (
 		FirstName string     `json:"first_name,omitempty" bson:"first_name,omitempty"`
 		LastName  string     `json:"last_name,omitempty" bson:"last_name,omitempty"`
 		UserID    string     `json:"user_id,omitempty" bson:"user_id,omitempty"`
-		Role      Role       `json:"role,omitempty" bson:"role,omitempty"`
+		Role      Role       `json:"role" bson:"role"`
+		ProjectID []string   `json:"project_id" bson:"project_id"`
 		CreatedAt *time.Time `json:"created_at,omitempty" bson:"created_at,omitempty"`
 		UpdateAt  *time.Time `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
 	}
@@ -36,5 +39,9 @@ type (
 func (user *User) Strip() *User {
 	stripedUser := User(*user)
 	stripedUser.Password = ""
+	stripedUser.ID = ""
+	stripedUser.FirstName = ""
+	stripedUser.LastName = ""
+	stripedUser.UserID = ""
 	return &stripedUser
 }

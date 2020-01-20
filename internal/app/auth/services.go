@@ -40,5 +40,4 @@ func (s *Service) Auth(ctx context.Context, email, password string) (string, *ty
 		return "", nil, err
 	}
 	return token, user, nil
-
 }

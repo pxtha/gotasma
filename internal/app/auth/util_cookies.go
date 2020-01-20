@@ -19,14 +19,11 @@ const (
 
 func userToClaims(user *types.User, lifeTime time.Duration) jwt.Claims {
 	return jwt.Claims{
-		Role:   int(user.Role),
-		UserID: user.UserID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(lifeTime).Unix(),
 			Id:        user.UserID,
 			IssuedAt:  time.Now().Unix(),
 			Issuer:    jwt.DefaultIssuer,
-			Subject:   user.UserID,
 		},
 	}
 }

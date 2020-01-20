@@ -36,14 +36,14 @@ services:
       - MONGODB_TIMEOUT=${MONGODB_TIMEOUT}
     
     volumes:
-      - ../../.realize.yaml:/home/praslar/Code/Workspace/src/praslar.com/gotasma/.realize.yaml
-      - ../../main.go:/home/praslar/Code/Workspace/src/praslar.com/gotasma/main.go
-      - ../../go.mod:/home/praslar/Code/Workspace/src/praslar.com/gotasma/go.mod
-      - ../../go.sum:/home/praslar/Code/Workspace/src/praslar.com/gotasma/go.sum
-      - ../../internal:/home/praslar/Code/Workspace/src/praslar.com/gotasma/internal/
-      - ../../configs:/home/praslar/Code/Workspace/src/praslar.com/gotasma/configs
+      - ../../.realize.yaml:/home/pxthang/Code/Golang/src/praslar.com/gotasma/.realize.yaml
+      - ../../main.go:/home/pxthang/Code/Golang/src/praslar.com/gotasma/main.go
+      - ../../go.mod:/home/pxthang/Code/Golang/src/praslar.com/gotasma/go.mod
+      - ../../go.sum:/home/pxthang/Code/Golang/src/praslar.com/gotasma/go.sum
+      - ../../internal:/home/pxthang/Code/Golang/src/praslar.com/gotasma/internal/
+      - ../../configs:/home/pxthang/Code/Golang/src/praslar.com/gotasma/configs
       - ../scripts:/scripts
-    working_dir: /home/praslar/Code/Workspace/src/praslar.com/gotasma
+    working_dir: /home/pxthang/Code/Golang/src/praslar.com/gotasma
     entrypoint: [ "sh", "-c", "/scripts/wait-for.sh mongodb:27017 --timeout=5 -- realize start" ]
     depends_on:
       - mongodb

@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/sirupsen/logrus"
-
 	"praslar.com/gotasma/internal/app/types"
 	"praslar.com/gotasma/internal/pkg/http/respond"
 )
@@ -37,7 +35,6 @@ func (h *Handler) Auth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	logrus.Info("hereee!!!", req.Email, req.Password)
 	token, user, err := h.srv.Auth(r.Context(), req.Email, req.Password)
 	if err != nil {
 		respond.Error(w, err, http.StatusUnauthorized)

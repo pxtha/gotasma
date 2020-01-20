@@ -24,12 +24,10 @@ type (
 
 	Claims struct {
 		jwt.StandardClaims
-		Role   int
-		UserID string
 	}
 
 	Config struct {
-		JWTSecret string `envconfig:"JWT_SECRET" default:"a star in the sky..."`
+		JWTSecret string `envconfig:"JWT_SECRET" default:"praslar"`
 	}
 
 	Generator struct {
@@ -42,7 +40,7 @@ type (
 
 const (
 	// DefaultIssuer is default issuer name
-	DefaultIssuer = "robusta"
+	DefaultIssuer = "gotasma"
 	// DefaultLifeTime is default life time of a token
 	DefaultLifeTime = time.Hour * 24
 )

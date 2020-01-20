@@ -1,7 +1,8 @@
-PROJECT_NAME=gotasma
+PROJECT_NAME=Gotasma
 BUILD_VERSION=$(shell cat VERSION)
 DOCKER_IMAGE=$(PROJECT_NAME):$(BUILD_VERSION)
 GO_BUILD_ENV=CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on
+
 REALIZE_VERSION=2.0.2
 REALIZE_IMAGE=realize:$(REALIZE_VERSION)
 
@@ -30,3 +31,6 @@ compose_dev: realize
 realize:
 	cd deployment/dev; \
 	docker build -t $(REALIZE_IMAGE) .;
+
+docker_run:
+	docker run -p 8080:8080 $(DOCKER_IMAGE)
