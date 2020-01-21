@@ -1,14 +1,21 @@
 version: '3'
 
 services:
+  mongodb:
+    image: mongo:latest
+    hostname: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - /opt/data/mongo_home:/data/db
+    restart: always
+
   backend:
     image: "gotasma:${BUILD_VERSION}"
     hostname: gotasma
     ports:
       - "8080:8080"
     environment:
-      # LOGGING
-      - LOG_FORMAT=${LOG_FORMAT}
       # HTTP
       - HTTP_READ_TIMEOUT=${HTTP_READ_TIMEOUT}
       - HTTP_WRITE_TIMEOUT=${HTTP_WRITE_TIMEOUT}
@@ -24,4 +31,6 @@ services:
       - MONGODB_USERNAME=${MONGODB_USERNAME}
       - MONGODB_PASSWORD=${MONGODB_PASSWORD}
       - MONGODB_TIMEOUT=${MONGODB_TIMEOUT}
+    depends_on:
+        - mongodb
     restart: always

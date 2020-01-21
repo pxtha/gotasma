@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"github.com/sirupsen/logrus"
-
+	"praslar.com/gotasma/internal/app/auth"
+	"praslar.com/gotasma/internal/pkg/http/middleware"
 	"praslar.com/gotasma/internal/pkg/router"
 )
 
@@ -26,14 +26,17 @@ func NewRouter() (http.Handler, error) {
 
 	jwtSignVerifier := newJWTSignVerifier()
 
+	userInfoMiddleware := auth.UserInfoMiddleware(jwtSignVerifier)
+
 	authHandler := newAuthHandler(jwtSignVerifier, userSrv)
 	indexHandler := NewIndexHandler()
 
 	routes := []router.Route{
 		{
-			Path:    "/",
-			Method:  get,
-			Handler: indexHandler.ServeHTTP,
+			Path:        "/",
+			Method:      get,
+			Handler:     indexHandler.ServeHTTP,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
 	}
 
@@ -42,13 +45,15 @@ func NewRouter() (http.Handler, error) {
 
 	conf := router.LoadConfigFromEnv()
 	conf.Routes = routes
-	//conf.NotFoundHandler = indexHandler
+	conf.Middlewares = []router.Middleware{
+		userInfoMiddleware,
+	}
 
-	logrus.Info(conf)
 	r, err := router.New(conf)
+
 	if err != nil {
 		return nil, err
 	}
 
-	return r, nil
+	return middleware.CORS(r), nil
 }

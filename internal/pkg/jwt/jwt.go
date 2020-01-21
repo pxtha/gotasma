@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"praslar.com/gotasma/internal/app/types"
 )
 
 type (
@@ -24,6 +25,9 @@ type (
 
 	Claims struct {
 		jwt.StandardClaims
+		Role      types.Role
+		UserID    string
+		ProjectID []string
 	}
 
 	Config struct {

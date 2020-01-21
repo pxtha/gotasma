@@ -11,7 +11,7 @@ import (
 
 type (
 	service interface {
-		Auth(ctx context.Context, username, password string) (string, *types.User, error)
+		Auth(ctx context.Context, username, password string) (string, error)
 	}
 	Handler struct {
 		srv service
@@ -35,14 +35,7 @@ func (h *Handler) Auth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	token, user, err := h.srv.Auth(r.Context(), req.Email, req.Password)
-	if err != nil {
-		respond.Error(w, err, http.StatusUnauthorized)
-		return
-	}
-
-	setCookies(w, r, token, user)
-	info, err := userInfoCookieValue(user)
+	token, err := h.srv.Auth(r.Context(), req.Email, req.Password)
 	if err != nil {
 		respond.Error(w, err, http.StatusUnauthorized)
 		return
@@ -50,8 +43,7 @@ func (h *Handler) Auth(w http.ResponseWriter, r *http.Request) {
 
 	respond.JSON(w, http.StatusOK, types.BaseResponse{
 		Data: map[string]interface{}{
-			"token":     token,
-			"user_info": info,
+			"token": token,
 		},
 	})
 }

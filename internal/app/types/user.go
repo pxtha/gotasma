@@ -32,7 +32,7 @@ type (
 		Password  string `json:"password" validate:"required,gt=3"`
 		FirstName string `json:"first_name,omitempty"`
 		LastName  string `json:"last_name,omitempty"`
-		Role      Role   `json:"role,omitempty" validate:"required,lt=3" bson:"role,omitempty"`
+		Role      Role   `json:"role" validate:"lt=3" bson:"role"`
 	}
 )
 
@@ -42,6 +42,5 @@ func (user *User) Strip() *User {
 	stripedUser.ID = ""
 	stripedUser.FirstName = ""
 	stripedUser.LastName = ""
-	stripedUser.UserID = ""
 	return &stripedUser
 }

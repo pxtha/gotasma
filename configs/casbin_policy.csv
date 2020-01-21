@@ -1,0 +1,2 @@
+p, 0, /, GET
+p, 0, /api/v1/users/registration, POST

@@ -29,3 +29,8 @@ user:
     code: 1300
     status: 400
     message: "Duplicated email"
+policy:
+  unauthorized:
+    code: 1100
+    status: 401
+    message: "You are not authorized to access this resource"

@@ -27,17 +27,17 @@ func NewService(signer jwt.Signer, authenticator Authenticator) *Service {
 	}
 }
 
-func (s *Service) Auth(ctx context.Context, email, password string) (string, *types.User, error) {
+func (s *Service) Auth(ctx context.Context, email, password string) (string, error) {
 	user, err := s.authenticator.Auth(ctx, email, password)
 	if err != nil {
 		logrus.WithContext(ctx).Errorf("failed to login with local, err: %v", err)
-		return "", nil, status.Auth().InvalidUserPassword
+		return "", status.Auth().InvalidUserPassword
 	}
 
 	token, err := s.jwtSigner.Sign(userToClaims(user, jwt.DefaultLifeTime))
 	if err != nil {
 		logrus.WithContext(ctx).Errorf("failed to generate JWT token, err: %v", err)
-		return "", nil, err
+		return "", err
 	}
-	return token, user, nil
+	return token, nil
 }

@@ -19,6 +19,9 @@ type (
 		Internal   Status
 	}
 
+	PolicyStatus struct {
+		Unauthorized Status
+	}
 	UserStatus struct {
 		DuplicatedEmail Status `yaml:"duplicated_email"`
 	}
@@ -27,15 +30,11 @@ type (
 		InvalidUserPassword Status `yaml:"invalid_user_password"`
 	}
 
-	ChallengeStatus struct {
-		NotSupported Status
-	}
-
 	statuses struct {
-		Gen       GenStatus
-		User      UserStatus
-		Auth      AuthStatus
-		Challenge ChallengeStatus
+		Gen    GenStatus
+		User   UserStatus
+		Auth   AuthStatus
+		Policy PolicyStatus
 	}
 )
 
@@ -87,4 +86,8 @@ func Success() Status {
 
 func Auth() AuthStatus {
 	return load().Auth
+}
+
+func Policy() PolicyStatus {
+	return load().Policy
 }
