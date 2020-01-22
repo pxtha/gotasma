@@ -3,7 +3,7 @@ module praslar.com/gotasma
 go 1.13
 
 require (
-	github.com/casbin/casbin v1.9.1 // indirect
+	github.com/casbin/casbin v1.9.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/go-playground/universal-translator v0.17.0 // indirect
@@ -16,6 +16,7 @@ require (
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
+	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
 	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/yaml.v2 v2.2.7

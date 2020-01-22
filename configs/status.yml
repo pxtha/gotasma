@@ -33,4 +33,4 @@ policy:
   unauthorized:
     code: 1100
     status: 401
-    message: "You are not authorized to access this resource"
+    message: "You are not authorized to access this resources"

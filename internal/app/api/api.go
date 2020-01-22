@@ -18,33 +18,35 @@ const (
 
 func NewRouter() (http.Handler, error) {
 
-	userSrv, err := newUserService()
+	policySrv, err := newPolicyService()
+	if err != nil {
+		return nil, err
+	}
+	userSrv, err := newUserService(policySrv)
 	if err != nil {
 		return nil, err
 	}
 	userHandler := newUserHandler(userSrv)
-
 	jwtSignVerifier := newJWTSignVerifier()
-
 	userInfoMiddleware := auth.UserInfoMiddleware(jwtSignVerifier)
-
 	authHandler := newAuthHandler(jwtSignVerifier, userSrv)
 	indexHandler := NewIndexHandler()
 
 	routes := []router.Route{
 		{
-			Path:        "/",
-			Method:      get,
-			Handler:     indexHandler.ServeHTTP,
-			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+			Path:    "/",
+			Method:  get,
+			Handler: indexHandler.ServeHTTP,
 		},
 	}
 
 	routes = append(routes, userHandler.Routes()...)
+
 	routes = append(routes, authHandler.Routes()...)
 
 	conf := router.LoadConfigFromEnv()
 	conf.Routes = routes
+
 	conf.Middlewares = []router.Middleware{
 		userInfoMiddleware,
 	}

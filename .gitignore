@@ -1,0 +1,8 @@
+
+*.bin
+
+deployment/docker/configs/
+deployment/docker/*.bin
+
+.realize/
+*.env.priv

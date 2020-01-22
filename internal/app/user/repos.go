@@ -52,3 +52,20 @@ func (r *MongoDBRepository) FindByEmail(ctx context.Context, email string) (*typ
 func (r *MongoDBRepository) collection(s *mgo.Session) *mgo.Collection {
 	return s.DB("").C("user")
 }
+
+func (r *MongoDBRepository) FindAllDev(ctx context.Context, createrID string) ([]*types.User, error) {
+	selector := bson.M{"creater_id": createrID}
+	s := r.session.Clone()
+	defer s.Close()
+	var users []*types.User
+	if err := r.collection(s).Find(selector).All(&users); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func (r *MongoDBRepository) Delete(ctx context.Context, id string) error {
+	s := r.session.Clone()
+	defer s.Close()
+	return r.collection(s).Remove(bson.M{"user_id": id})
+}
