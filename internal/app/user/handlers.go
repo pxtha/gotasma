@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+
 	"praslar.com/gotasma/internal/app/types"
 	"praslar.com/gotasma/internal/pkg/http/respond"
 )
@@ -80,7 +81,7 @@ func (h *Handler) FindAllDev(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
+	id := mux.Vars(r)["user_id"]
 	if id == "" {
 		respond.Error(w, errors.New("invalid id"), http.StatusBadRequest)
 		return

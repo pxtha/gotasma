@@ -29,8 +29,18 @@ user:
     code: 1300
     status: 400
     message: "Duplicated email"
+holiday:
+  duplicated_holiday:
+    code: 1400
+    status: 400
+    message: "Duplicated holiday"
 policy:
   unauthorized:
     code: 1100
     status: 401
     message: "You are not authorized to access this resources"
+sercurity:
+  invalid_action:
+    code: 9999
+    status: 401
+    message: "You shouldn't do this!"

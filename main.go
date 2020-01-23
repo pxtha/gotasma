@@ -13,7 +13,6 @@ func main() {
 	if err != nil {
 		logrus.Panic("Cannot init Router, err: ", err)
 	}
-
 	severConf := server.LoadConfigFromEnv()
 	server.ListenAndServe(severConf, router)
 }

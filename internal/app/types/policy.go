@@ -17,3 +17,9 @@ const (
 	PolicyObjectDeleteDev = "/api/v1/users/dev"
 	PolicyActionDevDelete = "DELETE"
 )
+
+// Policy of holiday api
+const (
+	ObjectHoliday = "/api/v1/holiday"
+	ActionHoliday = "POST"
+)

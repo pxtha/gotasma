@@ -15,10 +15,12 @@ type (
 		Success    Status
 		NotFound   Status
 		Timeout    status.Timeout
-		BadRequest Status
+		BadRequest Status `yaml:"bad_request"`
 		Internal   Status
 	}
-
+	HolidayStatus struct {
+		DuplicatedHoliday Status `yaml:"duplicated_holiday"`
+	}
 	PolicyStatus struct {
 		Unauthorized Status
 	}
@@ -29,12 +31,16 @@ type (
 	AuthStatus struct {
 		InvalidUserPassword Status `yaml:"invalid_user_password"`
 	}
-
+	SercurityStatus struct {
+		InvalidAction Status `yaml:"invalid_action"`
+	}
 	statuses struct {
-		Gen    GenStatus
-		User   UserStatus
-		Auth   AuthStatus
-		Policy PolicyStatus
+		Gen       GenStatus
+		User      UserStatus
+		Auth      AuthStatus
+		Policy    PolicyStatus
+		Sercurity SercurityStatus
+		Holiday   HolidayStatus
 	}
 )
 
@@ -90,4 +96,12 @@ func Auth() AuthStatus {
 
 func Policy() PolicyStatus {
 	return load().Policy
+}
+
+func Sercurity() SercurityStatus {
+	return load().Sercurity
+}
+
+func Hoiday() HolidayStatus {
+	return load().Holiday
 }

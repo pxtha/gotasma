@@ -9,7 +9,7 @@ settings:
       host: ""
 schema:
 - name: backend
-  path: /home/pxthang/Code/Golang/src/praslar.com/gotasma
+  path: /home/praslar/Code/Workspace/src/praslar.com/gotasma
   commands:
     run:
       status: true

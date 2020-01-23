@@ -3,6 +3,8 @@ package api
 import (
 	"net/http"
 
+	"github.com/sirupsen/logrus"
+
 	"praslar.com/gotasma/internal/app/auth"
 	"praslar.com/gotasma/internal/pkg/http/middleware"
 	"praslar.com/gotasma/internal/pkg/router"
@@ -43,6 +45,7 @@ func NewRouter() (http.Handler, error) {
 	routes = append(routes, userHandler.Routes()...)
 
 	routes = append(routes, authHandler.Routes()...)
+	logrus.Info(routes)
 
 	conf := router.LoadConfigFromEnv()
 	conf.Routes = routes
@@ -56,6 +59,5 @@ func NewRouter() (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return middleware.CORS(r), nil
 }
