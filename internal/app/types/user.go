@@ -36,10 +36,10 @@ type (
 	}
 
 	UserInfo struct {
-		Email     string   `json:"email,omitempty" validate:"required,email"`
+		Email     string   `json:"email,omitempty"`
 		FirstName string   `json:"first_name,omitempty"`
 		LastName  string   `json:"last_name,omitempty"`
-		Role      Role     `json:"role" validate:"lt=3"`
+		Role      Role     `json:"role"`
 		ProjectID []string `json:"project_id"`
 		CreaterID string   `json:"creater_id,omitempty"`
 		UserID    string   `json:"user_id,omitempty"`

@@ -3,8 +3,6 @@ package api
 import (
 	"net/http"
 
-	"github.com/sirupsen/logrus"
-
 	"praslar.com/gotasma/internal/app/auth"
 	"praslar.com/gotasma/internal/pkg/http/middleware"
 	"praslar.com/gotasma/internal/pkg/router"
@@ -19,16 +17,24 @@ const (
 )
 
 func NewRouter() (http.Handler, error) {
-
+	//=================Policy-Role Base=========
 	policySrv, err := newPolicyService()
 	if err != nil {
 		return nil, err
 	}
+	//=================User=====================
 	userSrv, err := newUserService(policySrv)
 	if err != nil {
 		return nil, err
 	}
 	userHandler := newUserHandler(userSrv)
+	//===============Holiday====================
+	holidaySrv, err := newHolidayService(policySrv)
+	if err != nil {
+		return nil, err
+	}
+	holidayHandler := newHolidayHandler(holidaySrv)
+	//===============Sub handler================
 	jwtSignVerifier := newJWTSignVerifier()
 	userInfoMiddleware := auth.UserInfoMiddleware(jwtSignVerifier)
 	authHandler := newAuthHandler(jwtSignVerifier, userSrv)
@@ -43,9 +49,8 @@ func NewRouter() (http.Handler, error) {
 	}
 
 	routes = append(routes, userHandler.Routes()...)
-
 	routes = append(routes, authHandler.Routes()...)
-	logrus.Info(routes)
+	routes = append(routes, holidayHandler.Routes()...)
 
 	conf := router.LoadConfigFromEnv()
 	conf.Routes = routes

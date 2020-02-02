@@ -12,6 +12,7 @@ func userToClaims(user *types.User, lifeTime time.Duration) jwt.Claims {
 		Role:      user.Role,
 		UserID:    user.UserID,
 		ProjectID: user.ProjectID,
+		CreaterID: user.CreaterID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(lifeTime).Unix(),
 			Id:        user.UserID,
@@ -26,5 +27,6 @@ func claimsToUser(claims *jwt.Claims) *types.User {
 		Role:      claims.Role,
 		UserID:    claims.UserID,
 		ProjectID: claims.ProjectID,
+		CreaterID: claims.CreaterID,
 	}
 }

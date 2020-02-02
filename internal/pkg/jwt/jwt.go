@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+
 	"praslar.com/gotasma/internal/app/types"
 )
 
@@ -28,6 +29,7 @@ type (
 		Role      types.Role
 		UserID    string
 		ProjectID []string
+		CreaterID string
 	}
 
 	Config struct {

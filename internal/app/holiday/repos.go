@@ -47,3 +47,23 @@ func (r *MongoDBRepository) FindByTitle(ctx context.Context, title string) (*typ
 func (r *MongoDBRepository) collection(s *mgo.Session) *mgo.Collection {
 	return s.DB("").C("holiday")
 }
+
+func (r *MongoDBRepository) Delete(ctx context.Context, id string) error {
+	s := r.session.Clone()
+	defer s.Close()
+	if err := r.collection(s).Remove(bson.M{"holiday_id": id}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *MongoDBRepository) FindAll(ctx context.Context, createrID string) ([]*types.Holiday, error) {
+	selector := bson.M{"creater_id": createrID}
+	s := r.session.Clone()
+	defer s.Close()
+	var holidays []*types.Holiday
+	if err := r.collection(s).Find(selector).All(&holidays); err != nil {
+		return nil, err
+	}
+	return holidays, nil
+}
