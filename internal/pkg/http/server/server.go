@@ -11,7 +11,7 @@ import (
 func ListenAndServe(conf Config, router http.Handler) {
 	port := fmt.Sprint(conf.Port)
 	if conf.Port == 0 {
-		port = os.Getenv("PORT") // mostly for app engine or heroku
+		port = os.Getenv("PORT")
 		if port == "" {
 			port = "8080"
 		}

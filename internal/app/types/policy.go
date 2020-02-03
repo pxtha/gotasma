@@ -23,3 +23,9 @@ const (
 	ObjectHoliday = "/api/v1/holiday"
 	ActionHoliday = "POST"
 )
+
+// Policy of holiday api
+const (
+	ObjectProject = "/api/v1/project"
+	ActionProject = "POST"
+)

@@ -18,6 +18,9 @@ type (
 		BadRequest Status `yaml:"bad_request"`
 		Internal   Status
 	}
+	ProjectStatus struct {
+		DuplicateProject Status `yaml:"duplicated_project"`
+	}
 	HolidayStatus struct {
 		DuplicatedHoliday Status `yaml:"duplicated_holiday"`
 	}
@@ -41,6 +44,7 @@ type (
 		Policy    PolicyStatus
 		Sercurity SercurityStatus
 		Holiday   HolidayStatus
+		Project   ProjectStatus
 	}
 )
 
@@ -104,4 +108,8 @@ func Sercurity() SercurityStatus {
 
 func Hoiday() HolidayStatus {
 	return load().Holiday
+}
+
+func Project() ProjectStatus {
+	return load().Project
 }

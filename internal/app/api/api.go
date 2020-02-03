@@ -5,7 +5,7 @@ import (
 
 	"praslar.com/gotasma/internal/app/auth"
 	"praslar.com/gotasma/internal/pkg/http/middleware"
-	"praslar.com/gotasma/internal/pkg/router"
+	"praslar.com/gotasma/internal/pkg/http/router"
 )
 
 const (
@@ -34,6 +34,12 @@ func NewRouter() (http.Handler, error) {
 		return nil, err
 	}
 	holidayHandler := newHolidayHandler(holidaySrv)
+	//===============Project====================
+	projectSrv, err := newProjectService(policySrv)
+	if err != nil {
+		return nil, err
+	}
+	projectHandler := newProjectHandler(projectSrv)
 	//===============Sub handler================
 	jwtSignVerifier := newJWTSignVerifier()
 	userInfoMiddleware := auth.UserInfoMiddleware(jwtSignVerifier)
@@ -51,6 +57,7 @@ func NewRouter() (http.Handler, error) {
 	routes = append(routes, userHandler.Routes()...)
 	routes = append(routes, authHandler.Routes()...)
 	routes = append(routes, holidayHandler.Routes()...)
+	routes = append(routes, projectHandler.Routes()...)
 
 	conf := router.LoadConfigFromEnv()
 	conf.Routes = routes

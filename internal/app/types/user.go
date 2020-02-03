@@ -7,14 +7,13 @@ const (
 	PM Role = iota
 	//DEV Developer
 	DEV
-	//TEMP Anonymous dev
-	TEMP
 )
 
 type (
 	UserStatus string
 	Role       int
-	User       struct {
+
+	User struct {
 		Email     string    `json:"email,omitempty" bson:"email,omitempty"`
 		Password  string    `json:"-" bson:"password,omitempty"`
 		FirstName string    `json:"first_name,omitempty" bson:"first_name,omitempty"`

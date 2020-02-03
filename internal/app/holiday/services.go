@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-
 	"praslar.com/gotasma/internal/app/auth"
 	"praslar.com/gotasma/internal/app/status"
 	"praslar.com/gotasma/internal/app/types"
@@ -21,7 +19,7 @@ const (
 type (
 	Repository interface {
 		Create(ctx context.Context, holiday *types.Holiday) error
-		FindByTitle(ctx context.Context, title string) (*types.Holiday, error)
+		FindByTitle(ctx context.Context, title string, createrID string) (*types.Holiday, error)
 		Delete(ctx context.Context, id string) error
 		FindAll(ctx context.Context, createrID string) ([]*types.Holiday, error)
 	}
@@ -42,6 +40,7 @@ func New(repo Repository, policy PolicyServices) *Services {
 }
 
 func (s *Services) Create(ctx context.Context, req *types.HolidayRequest) (*types.Holiday, error) {
+	pm := auth.FromContext(ctx)
 
 	if err := s.policy.Validate(ctx, types.ObjectHoliday, types.ActionHoliday); err != nil {
 		return nil, err
@@ -51,7 +50,7 @@ func (s *Services) Create(ctx context.Context, req *types.HolidayRequest) (*type
 		return nil, err
 	}
 
-	existingHoliday, err := s.repo.FindByTitle(ctx, req.Title)
+	existingHoliday, err := s.repo.FindByTitle(ctx, req.Title, pm.UserID)
 	if err != nil && !db.IsErrNotFound(err) {
 		return nil, fmt.Errorf("failed to check existing holiday by title: %w", err)
 	}
@@ -59,7 +58,6 @@ func (s *Services) Create(ctx context.Context, req *types.HolidayRequest) (*type
 		return nil, status.Hoiday().DuplicatedHoliday
 	}
 
-	pm := auth.FromContext(ctx)
 	holiday := &types.Holiday{
 		Title:     req.Title,
 		Start:     req.Start,
@@ -85,24 +83,27 @@ func (s *Services) Delete(ctx context.Context, id string) error {
 }
 
 func (s *Services) FindAll(ctx context.Context) ([]*types.Holiday, error) {
+
 	user := auth.FromContext(ctx)
+
 	var holidays []*types.Holiday
 	var err error
 
 	//Check current client roles, pass defferent id to func depend on role
-	if user.Role == types.PM {
-		holidays, err = s.repo.FindAll(ctx, user.UserID)
-	} else {
-		logrus.Info(user)
-		holidays, err = s.repo.FindAll(ctx, user.CreaterID)
+	userID := user.UserID
+	if user.Role != types.PM {
+		userID = user.CreaterID
 	}
+
+	holidays, err = s.repo.FindAll(ctx, userID)
 	info := make([]*types.Holiday, 0)
 	for _, holiday := range holidays {
 		info = append(info, &types.Holiday{
-			Title:    holiday.Title,
-			Start:    holiday.Start,
-			End:      holiday.End,
-			Duration: holiday.Duration,
+			Title:     holiday.Title,
+			Start:     holiday.Start,
+			End:       holiday.End,
+			Duration:  holiday.Duration,
+			HolidayID: holiday.HolidayID,
 		})
 	}
 	return info, err

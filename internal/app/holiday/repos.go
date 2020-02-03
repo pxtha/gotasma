@@ -33,8 +33,8 @@ func (r *MongoDBRepository) Create(ctx context.Context, holiday *types.Holiday) 
 	return nil
 }
 
-func (r *MongoDBRepository) FindByTitle(ctx context.Context, title string) (*types.Holiday, error) {
-	selector := bson.M{"title": title}
+func (r *MongoDBRepository) FindByTitle(ctx context.Context, title string, createrID string) (*types.Holiday, error) {
+	selector := bson.M{"title": title, "creater_id": createrID}
 	s := r.session.Clone()
 	defer s.Close()
 	var holiday *types.Holiday

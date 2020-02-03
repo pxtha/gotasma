@@ -3,7 +3,7 @@ package auth
 import (
 	"net/http"
 
-	"praslar.com/gotasma/internal/pkg/router"
+	"praslar.com/gotasma/internal/pkg/http/router"
 )
 
 func (h *Handler) Routes() []router.Route {
