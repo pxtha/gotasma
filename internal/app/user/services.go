@@ -211,13 +211,14 @@ func (s *Service) UpdateUserProjectsID(ctx context.Context, userID string, proje
 	if err := s.policy.Validate(ctx, types.PolicyObjectDeleteDev, types.PolicyActionDevDelete); err != nil {
 		return err
 	}
-	user, err := s.repo.FindByID(ctx, userID)
+	// Check user exist
+	_, err := s.repo.FindByID(ctx, userID)
 	if err != nil && !db.IsErrNotFound(err) {
 		return status.Gen().Internal
 	}
 	if db.IsErrNotFound(err) {
 		return err
 	}
-	err := s.repo.UpdateUserProjectsID(ctx, userID, projectID)
+	err = s.repo.UpdateUserProjectsID(ctx, userID, projectID)
 	return err
 }

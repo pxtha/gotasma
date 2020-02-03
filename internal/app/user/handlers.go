@@ -105,13 +105,14 @@ func (h *Handler) AddToProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
+
 	// go ahead to update
-	var req string
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var reqProjectID string
+	if err := json.NewDecoder(r.Body).Decode(&reqProjectID); err != nil {
 		respond.Error(w, err, http.StatusBadRequest)
 		return
 	}
-	if err := h.srv.UpdateUserProjectsID(r.Context(), id, req); err != nil {
+	if err := h.srv.UpdateUserProjectsID(r.Context(), id, reqProjectID); err != nil {
 		respond.Error(w, err, http.StatusInternalServerError)
 		return
 	}
