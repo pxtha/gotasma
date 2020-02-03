@@ -3,8 +3,8 @@ package user
 import (
 	"net/http"
 
-	"praslar.com/gotasma/internal/app/auth"
-	"praslar.com/gotasma/internal/pkg/http/router"
+	"github.com/gotasma/internal/app/auth"
+	"github.com/gotasma/internal/pkg/http/router"
 )
 
 func (h *Handler) Routes() []router.Route {
@@ -30,6 +30,12 @@ func (h *Handler) Routes() []router.Route {
 			Path:        "/api/v1/dev/{user_id:[a-z0-9-\\-]+}",
 			Method:      http.MethodDelete,
 			Handler:     h.Delete,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+		},
+		{
+			Path:        "/api/v1/dev/{user_id:[a-z0-9-\\-]+}",
+			Method:      http.MethodPut,
+			Handler:     h.AddToProject,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
 	}

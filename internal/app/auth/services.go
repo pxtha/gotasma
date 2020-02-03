@@ -5,9 +5,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"praslar.com/gotasma/internal/app/status"
-	"praslar.com/gotasma/internal/app/types"
-	"praslar.com/gotasma/internal/pkg/jwt"
+	"github.com/gotasma/internal/app/status"
+	"github.com/gotasma/internal/app/types"
+	"github.com/gotasma/internal/pkg/jwt"
 )
 
 type (

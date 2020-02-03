@@ -7,7 +7,7 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 
-	"praslar.com/gotasma/internal/app/types"
+	"github.com/gotasma/internal/app/types"
 )
 
 type (
@@ -71,6 +71,22 @@ func (r *MongoDBRepository) Delete(ctx context.Context, id string) error {
 	s := r.session.Clone()
 	defer s.Close()
 	return r.collection(s).Remove(bson.M{"user_id": id})
+}
+
+func (r *MongoDBRepository) UpdateUserProjectsID(ctx context.Context, userID string, projectID string) error {
+
+	s := r.session.Clone()
+	defer s.Close()
+
+	return r.collection(s).Update(bson.M{"user_id": userID}, bson.M{
+		"$set": bson.M{
+			"updated_at": time.Now(),
+		},
+		"$push": bson.M{
+			"project_id": projectID,
+		},
+	},
+	)
 }
 
 func (r *MongoDBRepository) collection(s *mgo.Session) *mgo.Collection {

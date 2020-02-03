@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
 
-	"praslar.com/gotasma/internal/app/types"
-	"praslar.com/gotasma/internal/pkg/http/respond"
+	"github.com/gotasma/internal/app/types"
+	"github.com/gotasma/internal/pkg/http/respond"
 )
 
 type (
@@ -18,6 +19,7 @@ type (
 		FindAllDev(ctx context.Context) ([]*types.UserInfo, error)
 		CreateDev(ctx context.Context, req *types.RegisterRequest) (*types.User, error)
 		Delete(ctx context.Context, id string) error
+		UpdateUserProjectsID(ctx context.Context, userID string, projectID string) error
 	}
 	Handler struct {
 		srv service
@@ -87,6 +89,29 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.srv.Delete(r.Context(), id); err != nil {
+		respond.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+	respond.JSON(w, http.StatusOK, types.BaseResponse{
+		Data: types.IDResponse{
+			ID: id,
+		},
+	})
+}
+func (h *Handler) AddToProject(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["user_id"]
+	if id == "" {
+		respond.Error(w, fmt.Errorf("id is not valid"), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	// go ahead to update
+	var req string
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respond.Error(w, err, http.StatusBadRequest)
+		return
+	}
+	if err := h.srv.UpdateUserProjectsID(r.Context(), id, req); err != nil {
 		respond.Error(w, err, http.StatusInternalServerError)
 		return
 	}

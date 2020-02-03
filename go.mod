@@ -1,4 +1,4 @@
-module praslar.com/gotasma
+module github.com/gotasma
 
 go 1.13
 

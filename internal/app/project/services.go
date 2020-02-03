@@ -4,34 +4,42 @@ import (
 	"context"
 	"fmt"
 
-	"praslar.com/gotasma/internal/app/auth"
-	"praslar.com/gotasma/internal/app/status"
-	"praslar.com/gotasma/internal/app/types"
-	"praslar.com/gotasma/internal/pkg/db"
-	"praslar.com/gotasma/internal/pkg/uuid"
-	"praslar.com/gotasma/internal/pkg/validator"
+	"github.com/gotasma/internal/app/auth"
+	"github.com/gotasma/internal/app/status"
+	"github.com/gotasma/internal/app/types"
+	"github.com/gotasma/internal/pkg/db"
+	"github.com/gotasma/internal/pkg/uuid"
+	"github.com/gotasma/internal/pkg/validator"
 )
 
 type (
 	repository interface {
 		FindByName(ctx context.Context, name string, createrID string) (*types.Project, error)
-		Create(context.Context, *types.Project) error
+		FindByPm(ctx context.Context, pmID string) ([]*types.Project, error)
+		FindByDev(ctx context.Context, devID string) ([]*types.Project, error)
+		Create(context.Context, *types.Project) (string, error)
 	}
 
 	PolicyService interface {
 		Validate(ctx context.Context, obj string, act string) error
 	}
 
+	UpdateUserInfo interface {
+		UpdateUserProjectsID(ctx context.Context, userID string, projectID string) error
+	}
+
 	Service struct {
-		repo   repository
-		policy PolicyService
+		repo       repository
+		policy     PolicyService
+		updateUser UpdateUserInfo
 	}
 )
 
-func New(repo repository, policy PolicyService) *Service {
+func New(repo repository, policy PolicyService, updateUser UpdateUserInfo) *Service {
 	return &Service{
-		repo:   repo,
-		policy: policy,
+		repo:       repo,
+		policy:     policy,
+		updateUser: updateUser,
 	}
 }
 
@@ -67,13 +75,36 @@ func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (
 		Tasks:     []types.Task{},
 	}
 
-	if err := s.repo.Create(ctx, project); err != nil {
+	projectID, err := s.repo.Create(ctx, project)
+	if err != nil {
 		return nil, fmt.Errorf("failed to create project, %w", err)
 	}
-
+	//update ProjectIDs of PM info
+	if err := s.updateUser.UpdateUserProjectsID(ctx, pm.UserID, projectID); err != nil {
+		return nil, fmt.Errorf("failed to update projectIDs of user, %w", err)
+	}
 	return project, nil
 }
 
-func (s *Service) FindAll(context.Context) []types.Project {
+func (s *Service) FindAll(ctx context.Context) ([]*types.Project, error) {
+	user := auth.FromContext(ctx)
 
+	projects, err := s.repo.FindByPm(ctx, user.UserID)
+	if user.Role != types.PM {
+		projects, err = s.repo.FindByDev(ctx, user.UserID)
+	}
+
+	info := make([]*types.Project, 0)
+	for _, project := range projects {
+		info = append(info, &types.Project{
+			ProjectID: project.ProjectID,
+			Name:      project.Name,
+			CreaterID: project.CreaterID,
+			DevsID:    project.DevsID,
+			Highlight: project.Highlight,
+			UpdateAt:  project.UpdateAt,
+		})
+	}
+
+	return info, err
 }

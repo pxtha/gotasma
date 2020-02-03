@@ -5,14 +5,14 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"praslar.com/gotasma/internal/app/types"
-	"praslar.com/gotasma/internal/pkg/http/respond"
+	"github.com/gotasma/internal/app/types"
+	"github.com/gotasma/internal/pkg/http/respond"
 )
 
 type (
 	service interface {
 		Create(ctx context.Context, req *types.CreateProjectRequest) (*types.Project, error)
-		FindAll(context.Context) ([]types.Project, error)
+		FindAll(ctx context.Context) ([]*types.Project, error)
 	}
 	Handler struct {
 		srv service

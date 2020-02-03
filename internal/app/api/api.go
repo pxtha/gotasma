@@ -3,9 +3,9 @@ package api
 import (
 	"net/http"
 
-	"praslar.com/gotasma/internal/app/auth"
-	"praslar.com/gotasma/internal/pkg/http/middleware"
-	"praslar.com/gotasma/internal/pkg/http/router"
+	"github.com/gotasma/internal/app/auth"
+	"github.com/gotasma/internal/pkg/http/middleware"
+	"github.com/gotasma/internal/pkg/http/router"
 )
 
 const (
@@ -35,7 +35,7 @@ func NewRouter() (http.Handler, error) {
 	}
 	holidayHandler := newHolidayHandler(holidaySrv)
 	//===============Project====================
-	projectSrv, err := newProjectService(policySrv)
+	projectSrv, err := newProjectService(policySrv, userSrv)
 	if err != nil {
 		return nil, err
 	}

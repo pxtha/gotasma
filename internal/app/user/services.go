@@ -7,12 +7,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 
-	"praslar.com/gotasma/internal/app/auth"
-	"praslar.com/gotasma/internal/app/status"
-	"praslar.com/gotasma/internal/app/types"
-	"praslar.com/gotasma/internal/pkg/db"
-	"praslar.com/gotasma/internal/pkg/uuid"
-	"praslar.com/gotasma/internal/pkg/validator"
+	"github.com/gotasma/internal/app/auth"
+	"github.com/gotasma/internal/app/status"
+	"github.com/gotasma/internal/app/types"
+	"github.com/gotasma/internal/pkg/db"
+	"github.com/gotasma/internal/pkg/uuid"
+	"github.com/gotasma/internal/pkg/validator"
 )
 
 type (
@@ -22,6 +22,7 @@ type (
 		FindAllDev(ctx context.Context, createrID string) ([]*types.User, error)
 		Delete(cxt context.Context, id string) error
 		FindByID(ctx context.Context, UserID string) (*types.User, error)
+		UpdateUserProjectsID(context.Context, string, string) error
 	}
 
 	PolicyService interface {
@@ -145,7 +146,7 @@ func (s *Service) Auth(ctx context.Context, email, password string) (*types.User
 	}
 	if db.IsErrNotFound(err) {
 		logrus.WithContext(ctx).Debugf("user not found, email: %s", email)
-		return nil, status.Auth().InvalidUserPassword
+		return nil, err
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		logrus.WithContext(ctx).Error("invalid password")
@@ -160,8 +161,21 @@ func (s *Service) FindAllDev(ctx context.Context) ([]*types.UserInfo, error) {
 	}
 
 	pm := auth.FromContext(ctx)
+
+	pmInfo, err := s.repo.FindByID(ctx, pm.UserID)
 	users, err := s.repo.FindAllDev(ctx, pm.UserID)
 	info := make([]*types.UserInfo, 0)
+	info = append(info, &types.UserInfo{
+		Email:     pmInfo.Email,
+		FirstName: pmInfo.FirstName,
+		LastName:  pmInfo.LastName,
+		Role:      pmInfo.Role,
+		ProjectID: pmInfo.ProjectID,
+		CreaterID: pmInfo.CreaterID,
+		UserID:    pmInfo.UserID,
+		CreatedAt: pmInfo.CreatedAt,
+		UpdateAt:  pmInfo.UpdateAt,
+	})
 	for _, usr := range users {
 		info = append(info, &types.UserInfo{
 			Email:     usr.Email,
@@ -171,6 +185,8 @@ func (s *Service) FindAllDev(ctx context.Context) ([]*types.UserInfo, error) {
 			ProjectID: usr.ProjectID,
 			CreaterID: usr.CreaterID,
 			UserID:    usr.UserID,
+			CreatedAt: usr.CreatedAt,
+			UpdateAt:  usr.UpdateAt,
 		})
 	}
 	return info, err
@@ -189,4 +205,19 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 		return status.Sercurity().InvalidAction
 	}
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *Service) UpdateUserProjectsID(ctx context.Context, userID string, projectID string) error {
+	if err := s.policy.Validate(ctx, types.PolicyObjectDeleteDev, types.PolicyActionDevDelete); err != nil {
+		return err
+	}
+	user, err := s.repo.FindByID(ctx, userID)
+	if err != nil && !db.IsErrNotFound(err) {
+		return status.Gen().Internal
+	}
+	if db.IsErrNotFound(err) {
+		return err
+	}
+	err := s.repo.UpdateUserProjectsID(ctx, userID, projectID)
+	return err
 }

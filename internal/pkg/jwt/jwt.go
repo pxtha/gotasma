@@ -7,7 +7,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 
-	"praslar.com/gotasma/internal/app/types"
+	"github.com/gotasma/internal/app/types"
 )
 
 type (
@@ -28,7 +28,6 @@ type (
 		jwt.StandardClaims
 		Role      types.Role
 		UserID    string
-		ProjectID []string
 		CreaterID string
 	}
 

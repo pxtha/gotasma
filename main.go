@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/sirupsen/logrus"
 
-	"praslar.com/gotasma/internal/app/api"
-	"praslar.com/gotasma/internal/pkg/http/server"
+	"github.com/gotasma/internal/app/api"
+	"github.com/gotasma/internal/pkg/http/server"
 )
 
 func main() {

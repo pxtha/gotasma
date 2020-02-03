@@ -6,7 +6,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"praslar.com/gotasma/internal/pkg/status"
+	"github.com/gotasma/internal/pkg/status"
 )
 
 type (

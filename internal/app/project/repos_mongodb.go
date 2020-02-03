@@ -6,7 +6,7 @@ import (
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	"praslar.com/gotasma/internal/app/types"
+	"github.com/gotasma/internal/app/types"
 )
 
 type (
@@ -31,8 +31,28 @@ func (r *MongoDBRepository) FindByName(ctx context.Context, name string, creater
 	}
 	return project, nil
 }
+func (r *MongoDBRepository) FindByDev(ctx context.Context, devID string) ([]*types.Project, error) {
+	selector := bson.M{"dev_id": devID}
+	s := r.session.Clone()
+	defer s.Close()
+	var project []*types.Project
+	if err := r.collection(s).Find(selector).All(&project); err != nil {
+		return nil, err
+	}
+	return project, nil
+}
+func (r *MongoDBRepository) FindByPm(ctx context.Context, pmID string) ([]*types.Project, error) {
+	selector := bson.M{"creater_id": pmID}
+	s := r.session.Clone()
+	defer s.Close()
+	var project []*types.Project
+	if err := r.collection(s).Find(selector).All(&project); err != nil {
+		return nil, err
+	}
+	return project, nil
+}
 
-func (r *MongoDBRepository) Create(ctx context.Context, project *types.Project) error {
+func (r *MongoDBRepository) Create(ctx context.Context, project *types.Project) (string, error) {
 	s := r.session.Clone()
 	defer s.Clone()
 
@@ -40,9 +60,9 @@ func (r *MongoDBRepository) Create(ctx context.Context, project *types.Project) 
 	project.UpdateAt = project.CreatedAt
 
 	if err := r.collection(s).Insert(project); err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return project.ProjectID, nil
 }
 
 func (r *MongoDBRepository) collection(s *mgo.Session) *mgo.Collection {

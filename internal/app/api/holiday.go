@@ -1,7 +1,7 @@
 package api
 
 import (
-	"praslar.com/gotasma/internal/app/holiday"
+	"github.com/gotasma/internal/app/holiday"
 )
 
 func newHolidayService(policy holiday.PolicyServices) (*holiday.Services, error) {

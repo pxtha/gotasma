@@ -5,7 +5,7 @@ import (
 
 	"github.com/globalsign/mgo"
 
-	"praslar.com/gotasma/internal/pkg/db/mongodb"
+	"github.com/gotasma/internal/pkg/db/mongodb"
 )
 
 var (

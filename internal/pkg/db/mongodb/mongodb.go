@@ -6,7 +6,7 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/labstack/gommon/log"
 
-	envconfig "praslar.com/gotasma/internal/pkg/env"
+	envconfig "github.com/gotasma/internal/pkg/env"
 )
 
 type (

@@ -6,9 +6,9 @@ import (
 
 	"github.com/casbin/casbin"
 	"github.com/sirupsen/logrus"
-	"praslar.com/gotasma/internal/app/auth"
-	"praslar.com/gotasma/internal/app/status"
-	"praslar.com/gotasma/internal/app/types"
+	"github.com/gotasma/internal/app/auth"
+	"github.com/gotasma/internal/app/status"
+	"github.com/gotasma/internal/app/types"
 )
 
 type (

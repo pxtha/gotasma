@@ -1,8 +1,8 @@
 package api
 
-import "praslar.com/gotasma/internal/app/project"
+import "github.com/gotasma/internal/app/project"
 
-func newProjectService(policy project.PolicyService) (*project.Service, error) {
+func newProjectService(policy project.PolicyService, updateUser project.UpdateUserInfo) (*project.Service, error) {
 	s, err := dialDefaultMongoDB()
 	if err != nil {
 		return nil, err
@@ -10,7 +10,7 @@ func newProjectService(policy project.PolicyService) (*project.Service, error) {
 
 	repo := project.NewMongoDBRespository(s)
 
-	return project.New(repo, policy), nil
+	return project.New(repo, policy, updateUser), nil
 }
 
 func newProjectHandler(srv *project.Service) *project.Handler {

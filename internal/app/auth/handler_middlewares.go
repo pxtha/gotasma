@@ -4,11 +4,11 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/gotasma/internal/app/status"
+	"github.com/gotasma/internal/app/types"
+	"github.com/gotasma/internal/pkg/http/respond"
+	"github.com/gotasma/internal/pkg/jwt"
 	"github.com/sirupsen/logrus"
-	"praslar.com/gotasma/internal/app/status"
-	"praslar.com/gotasma/internal/app/types"
-	"praslar.com/gotasma/internal/pkg/http/respond"
-	"praslar.com/gotasma/internal/pkg/jwt"
 )
 
 type (
@@ -41,7 +41,6 @@ func UserInfoMiddleware(verifier jwt.Verifier) func(http.Handler) http.Handler {
 			newCtx := NewContext(r.Context(), claimsToUser(claims))
 
 			r = r.WithContext(newCtx)
-			logrus.WithContext(r.Context()).WithFields(logrus.Fields{"roloe": claims.Role, "user_id": claims.UserID, "projects_id": claims.ProjectID}).Debugf("decode JWT successfully")
 			inner.ServeHTTP(w, r)
 		})
 	}

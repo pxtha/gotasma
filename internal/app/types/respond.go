@@ -3,7 +3,7 @@ package types
 import (
 	"encoding/json"
 
-	"praslar.com/gotasma/internal/app/status"
+	"github.com/gotasma/internal/app/status"
 )
 
 type (

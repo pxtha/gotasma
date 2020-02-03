@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"praslar.com/gotasma/internal/app/auth"
-	"praslar.com/gotasma/internal/app/status"
-	"praslar.com/gotasma/internal/app/types"
-	"praslar.com/gotasma/internal/pkg/db"
-	"praslar.com/gotasma/internal/pkg/uuid"
-	"praslar.com/gotasma/internal/pkg/validator"
+	"github.com/gotasma/internal/app/auth"
+	"github.com/gotasma/internal/app/status"
+	"github.com/gotasma/internal/app/types"
+	"github.com/gotasma/internal/pkg/db"
+	"github.com/gotasma/internal/pkg/uuid"
+	"github.com/gotasma/internal/pkg/validator"
 )
 
 const (
@@ -89,13 +89,14 @@ func (s *Services) FindAll(ctx context.Context) ([]*types.Holiday, error) {
 	var holidays []*types.Holiday
 	var err error
 
-	//Check current client roles, pass defferent id to func depend on role
+	//Check current client roles, pass different id to func depends on role
 	userID := user.UserID
 	if user.Role != types.PM {
 		userID = user.CreaterID
 	}
 
 	holidays, err = s.repo.FindAll(ctx, userID)
+
 	info := make([]*types.Holiday, 0)
 	for _, holiday := range holidays {
 		info = append(info, &types.Holiday{

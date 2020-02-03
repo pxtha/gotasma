@@ -1,6 +1,6 @@
 package api
 
-import "praslar.com/gotasma/internal/app/user"
+import "github.com/gotasma/internal/app/user"
 
 func newUserService(policy user.PolicyService) (*user.Service, error) {
 	s, err := dialDefaultMongoDB()

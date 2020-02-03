@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	envconfig "praslar.com/gotasma/internal/pkg/env"
+	envconfig "github.com/gotasma/internal/pkg/env"
 )
 
 type (

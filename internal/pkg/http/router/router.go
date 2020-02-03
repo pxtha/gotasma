@@ -5,7 +5,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	envconfig "praslar.com/gotasma/internal/pkg/env"
+	envconfig "github.com/gotasma/internal/pkg/env"
 )
 
 type (

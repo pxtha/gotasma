@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"praslar.com/gotasma/internal/app/types"
-	"praslar.com/gotasma/internal/pkg/http/respond"
+	"github.com/gotasma/internal/app/types"
+	"github.com/gotasma/internal/pkg/http/respond"
 )
 
 type (

@@ -4,15 +4,15 @@ import (
 	"testing"
 
 	"golang.org/x/net/context"
-	"praslar.com/gotasma/internal/app/auth"
-	"praslar.com/gotasma/internal/app/policy"
-	"praslar.com/gotasma/internal/app/types"
+	"github.com/gotasma/internal/app/auth"
+	"github.com/gotasma/internal/app/policy"
+	"github.com/gotasma/internal/app/types"
 )
 
 func TestPolicy(t *testing.T) {
 	conf := policy.CasbinConfig{
-		ConfigPath: "/home/pxthang/Code/Golang/src/praslar.com/gotasma/configs/casbin.conf",
-		PolicyPath: "/home/pxthang/Code/Golang/src/praslar.com/gotasma/configs/casbin_policy.csv",
+		ConfigPath: "/home/pxthang/Code/Golang/src/github.com/gotasma/configs/casbin.conf",
+		PolicyPath: "/home/pxthang/Code/Golang/src/github.com/gotasma/configs/casbin_policy.csv",
 	}
 	enforcer := policy.NewFileCasbinEnforcer(conf)
 	policySrv, err := policy.New(enforcer)
