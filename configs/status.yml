@@ -49,3 +49,11 @@ project:
     code: 1500
     status: 400
     message: "Duplicated project"
+  already_in_project:
+    code: 1510
+    status: 400
+    message: "User already in project"
+  not_in_project:
+    code: 1520
+    status: 400
+    message: "User not in this project"

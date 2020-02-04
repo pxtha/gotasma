@@ -32,12 +32,5 @@ func (h *Handler) Routes() []router.Route {
 			Handler:     h.Delete,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
-		{
-			//Wrong!!!!!!!!!
-			Path:        "/api/v1/dev/{user_id:[a-z0-9-\\-]+}",
-			Method:      http.MethodPut,
-			Handler:     h.AddToProject,
-			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
-		},
 	}
 }

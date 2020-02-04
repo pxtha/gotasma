@@ -15,8 +15,8 @@ import (
 type (
 	repository interface {
 		FindByName(ctx context.Context, name string, createrID string) (*types.Project, error)
-		FindByPm(ctx context.Context, pmID string) ([]*types.Project, error)
-		FindByDev(ctx context.Context, devID string) ([]*types.Project, error)
+		FindByProjectID(ctx context.Context, projectID string) (*types.Project, error)
+		FindAllByUserID(ctx context.Context, id string, role types.Role) ([]*types.Project, error)
 		Create(context.Context, *types.Project) (string, error)
 	}
 
@@ -25,7 +25,8 @@ type (
 	}
 
 	UpdateUserInfo interface {
-		UpdateUserProjectsID(ctx context.Context, userID string, projectID string) error
+		AddProjectToUser(ctx context.Context, userIDs []string, projectID string) (int, error)
+		RemoveUserFromProject(ctx context.Context, userID string, projectID string) error
 	}
 
 	Service struct {
@@ -80,7 +81,9 @@ func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (
 		return nil, fmt.Errorf("failed to create project, %w", err)
 	}
 	//update ProjectIDs of PM info
-	if err := s.updateUser.UpdateUserProjectsID(ctx, pm.UserID, projectID); err != nil {
+	//make slice string because AddProjectToUser() take []string as argument
+	userID := []string{pm.UserID}
+	if _, err := s.updateUser.AddProjectToUser(ctx, userID, projectID); err != nil {
 		return nil, fmt.Errorf("failed to update projectIDs of user, %w", err)
 	}
 	return project, nil
@@ -89,10 +92,7 @@ func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (
 func (s *Service) FindAll(ctx context.Context) ([]*types.Project, error) {
 	user := auth.FromContext(ctx)
 
-	projects, err := s.repo.FindByPm(ctx, user.UserID)
-	if user.Role != types.PM {
-		projects, err = s.repo.FindByDev(ctx, user.UserID)
-	}
+	projects, err := s.repo.FindAllByUserID(ctx, user.UserID, user.Role)
 
 	info := make([]*types.Project, 0)
 	for _, project := range projects {
@@ -107,4 +107,50 @@ func (s *Service) FindAll(ctx context.Context) ([]*types.Project, error) {
 	}
 
 	return info, err
+}
+
+func (s *Service) AddProjectToUser(ctx context.Context, userIDs []string, projectID string) (int, error) {
+
+	//only PM add Project to user
+	if err := s.policy.Validate(ctx, types.ObjectProjectAddDevs, types.ActionProjectAddDevs); err != nil {
+		return 0, err
+	}
+	// Check project exist
+
+	_, err := s.repo.FindByProjectID(ctx, projectID)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		return 0, fmt.Errorf("failed to check existing project by ID: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		return 0, fmt.Errorf("Project doesn't exist, %w ", err)
+	}
+
+	//Return number of dev assigned to project
+	assignedUser, err := s.updateUser.AddProjectToUser(ctx, userIDs, projectID)
+	if err != nil {
+		return 0, err
+	}
+	return assignedUser, nil
+}
+
+func (s *Service) RemoveUserFromProject(ctx context.Context, userID string, projectID string) error {
+
+	if err := s.policy.Validate(ctx, types.ObjectProjectRemoveDevs, types.ActionProjectRemoveDevs); err != nil {
+		return err
+	}
+	// Check project exist
+	_, err := s.repo.FindByProjectID(ctx, projectID)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		return fmt.Errorf("failed to check existing project by ID: %w", err)
+	}
+	if db.IsErrNotFound(err) {
+		return fmt.Errorf("Project doesn't exist, %w ", err)
+	}
+	if err := s.updateUser.RemoveUserFromProject(ctx, userID, projectID); err != nil {
+		return err
+	}
+	return nil
 }

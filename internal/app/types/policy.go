@@ -20,12 +20,18 @@ const (
 
 // Policy of holiday api
 const (
-	ObjectHoliday = "/api/v1/holiday"
+	ObjectHoliday = "/api/v1/holidays"
 	ActionHoliday = "POST"
 )
 
-// Policy of holiday api
+// Policy of project api
 const (
-	ObjectProject = "/api/v1/project"
+	ObjectProject = "/api/v1/projects"
 	ActionProject = "POST"
+
+	ObjectProjectAddDevs = "api/v1/projects/{project_id:[a-z0-9-\\-]+}/devs"
+	ActionProjectAddDevs = "PUT"
+
+	ObjectProjectRemoveDevs = "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/devs"
+	ActionProjectRemoveDevs = "DELETE"
 )

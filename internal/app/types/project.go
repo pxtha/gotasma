@@ -31,4 +31,12 @@ type (
 	CreateProjectRequest struct {
 		Name string `json:"name,omitempty"  validate:"required,gt=3"`
 	}
+
+	RemoveUserRequest struct {
+		UserID string `json:"user_id"`
+	}
+
+	AddUsersRequest struct {
+		UserIDs []string `json:"user_ids"`
+	}
 )

@@ -22,7 +22,7 @@ type (
 		FindAllDev(ctx context.Context, createrID string) ([]*types.User, error)
 		Delete(cxt context.Context, id string) error
 		FindByID(ctx context.Context, UserID string) (*types.User, error)
-		UpdateUserProjectsID(context.Context, string, string) error
+		UpdateUserProjectsID(context.Context, string, string, string) error
 	}
 
 	PolicyService interface {
@@ -207,18 +207,61 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) UpdateUserProjectsID(ctx context.Context, userID string, projectID string) error {
-	if err := s.policy.Validate(ctx, types.PolicyObjectDeleteDev, types.PolicyActionDevDelete); err != nil {
-		return err
+func (s *Service) AddProjectToUser(ctx context.Context, userIDs []string, projectID string) (int, error) {
+
+	// Check if user exist
+	for _, userID := range userIDs {
+		user, err := s.repo.FindByID(ctx, userID)
+		if err != nil && !db.IsErrNotFound(err) {
+			return 0, status.Gen().Internal
+		}
+
+		if db.IsErrNotFound(err) {
+			return 0, fmt.Errorf("User %v doesn't exist, %w ", userID, err)
+		}
+
+		// Check user already has project
+		for _, val := range user.ProjectID {
+			if val == projectID {
+				return 0, status.Project().AlreadyInProject
+			}
+		}
 	}
+
+	//Count assigned user
+	var assignedUserID int
+	for _, user := range userIDs {
+		err := s.repo.UpdateUserProjectsID(ctx, user, projectID, "$addToSet")
+		if err != nil {
+			return assignedUserID, err
+		}
+		assignedUserID++
+	}
+	return assignedUserID, nil
+}
+
+func (s *Service) RemoveUserFromProject(ctx context.Context, userID string, projectID string) error {
 	// Check user exist
-	_, err := s.repo.FindByID(ctx, userID)
+	user, err := s.repo.FindByID(ctx, userID)
 	if err != nil && !db.IsErrNotFound(err) {
 		return status.Gen().Internal
 	}
+
 	if db.IsErrNotFound(err) {
-		return err
+		return fmt.Errorf("User %v doesn't exist, %w ", userID, err)
 	}
-	err = s.repo.UpdateUserProjectsID(ctx, userID, projectID)
-	return err
+
+	var UserInProject bool
+	// Check user in project
+	for _, id := range user.ProjectID {
+		if id == projectID {
+			UserInProject = true
+		}
+	}
+
+	if !UserInProject {
+		return status.Project().NotInProject
+	}
+
+	return s.repo.UpdateUserProjectsID(ctx, userID, projectID, "$pull")
 }

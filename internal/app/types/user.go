@@ -21,7 +21,7 @@ type (
 		Role      Role   `json:"role" bson:"role"`
 		CreaterID string `json:"creater_id,omitempty" bson:"creater_id,omitempty"`
 
-		ProjectID []string `json:"project_id" bson:"project_id"`
+		ProjectID []string `json:"project_id,omitempty" bson:"project_id,omitempty"`
 
 		CreatedAt time.Time `json:"created_at,omitempty" bson:"created_at,omitempty"`
 		UpdateAt  time.Time `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
@@ -40,7 +40,7 @@ type (
 		FirstName string    `json:"first_name,omitempty"`
 		LastName  string    `json:"last_name,omitempty"`
 		Role      Role      `json:"role"`
-		ProjectID []string  `json:"project_id"`
+		ProjectID []string  `json:"project_id,omitempty"`
 		CreaterID string    `json:"creater_id,omitempty"`
 		UserID    string    `json:"user_id,omitempty"`
 		CreatedAt time.Time `json:"created_at,omitempty"`

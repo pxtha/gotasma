@@ -31,18 +31,23 @@ func (r *MongoDBRepository) FindByName(ctx context.Context, name string, creater
 	}
 	return project, nil
 }
-func (r *MongoDBRepository) FindByDev(ctx context.Context, devID string) ([]*types.Project, error) {
-	selector := bson.M{"dev_id": devID}
+func (r *MongoDBRepository) FindByProjectID(ctx context.Context, projectID string) (*types.Project, error) {
+	selector := bson.M{"project_id": projectID}
 	s := r.session.Clone()
 	defer s.Close()
-	var project []*types.Project
-	if err := r.collection(s).Find(selector).All(&project); err != nil {
+	var project *types.Project
+	if err := r.collection(s).Find(selector).One(&project); err != nil {
 		return nil, err
 	}
 	return project, nil
 }
-func (r *MongoDBRepository) FindByPm(ctx context.Context, pmID string) ([]*types.Project, error) {
-	selector := bson.M{"creater_id": pmID}
+
+func (r *MongoDBRepository) FindAllByUserID(ctx context.Context, id string, role types.Role) ([]*types.Project, error) {
+	searchBy := "dev_id"
+	if role == types.PM {
+		searchBy = "creater_id"
+	}
+	selector := bson.M{searchBy: id}
 	s := r.session.Clone()
 	defer s.Close()
 	var project []*types.Project

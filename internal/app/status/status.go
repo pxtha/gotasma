@@ -20,6 +20,8 @@ type (
 	}
 	ProjectStatus struct {
 		DuplicateProject Status `yaml:"duplicated_project"`
+		AlreadyInProject Status `yaml:"already_in_project"`
+		NotInProject     Status `yaml:"not_in_project"`
 	}
 	HolidayStatus struct {
 		DuplicatedHoliday Status `yaml:"duplicated_holiday"`

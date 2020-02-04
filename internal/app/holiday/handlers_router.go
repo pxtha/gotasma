@@ -10,19 +10,19 @@ import (
 func (h *Handler) Routes() []router.Route {
 	return []router.Route{
 		{
-			Path:        "/api/v1/holiday",
+			Path:        "/api/v1/holidays",
 			Method:      http.MethodPost,
 			Handler:     h.Create,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
 		{
-			Path:        "/api/v1/holiday/{holiday_id:[a-z0-9-\\-]+}",
+			Path:        "/api/v1/holidays/{holiday_id:[a-z0-9-\\-]+}",
 			Method:      http.MethodDelete,
 			Handler:     h.Delete,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
 		{
-			Path:        "/api/v1/holiday",
+			Path:        "/api/v1/holidays",
 			Method:      http.MethodGet,
 			Handler:     h.FindAll,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
