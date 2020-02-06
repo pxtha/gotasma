@@ -56,12 +56,12 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["project_id"]
 	if id == "" {
-		logrus.Error("Fail to delete holiday due to empty holiday ID ")
+		logrus.Error("Fail to delete project due to empty project ID ")
 		respond.Error(w, errors.New("invalid id"), http.StatusBadRequest)
 		return
 	}
 	if err := h.srv.Delete(r.Context(), id); err != nil {
-		logrus.Errorf("Fail to delete holiday due to %v", err)
+		logrus.Errorf("Fail to delete project due to %v", err)
 		respond.Error(w, err, http.StatusInternalServerError)
 		return
 	}

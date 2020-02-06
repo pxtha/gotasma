@@ -15,7 +15,6 @@ import (
 type (
 	CasbinConfig struct {
 		ConfigPath string `envconfig:"CONFIG_PATH" default:"configs/casbin.conf"`
-
 		PolicyPath string `envconfig:"CONFIG_PATH" default:"configs/casbin_policy.csv"`
 	}
 	Service struct {
