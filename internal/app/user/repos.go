@@ -55,6 +55,18 @@ func (r *MongoDBRepository) FindAllDev(ctx context.Context, createrID string) ([
 	}
 	return users, nil
 }
+func (r *MongoDBRepository) FindDevsByID(ctx context.Context, userIDs []string) ([]*types.User, error) {
+	selector := bson.M{"user_id": bson.M{
+		"$in": userIDs,
+	}}
+	s := r.session.Clone()
+	defer s.Close()
+	var users []*types.User
+	if err := r.collection(s).Find(selector).All(&users); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
 
 func (r *MongoDBRepository) FindByID(ctx context.Context, UserID string) (*types.User, error) {
 	selector := bson.M{"user_id": UserID}

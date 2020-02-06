@@ -10,6 +10,8 @@ type (
 		Error() string
 		Code() uint32
 		Message() string
+
+		Status() int
 	}
 )
 
@@ -28,7 +30,7 @@ func JSON(w http.ResponseWriter, status int, data interface{}) {
 // Error write error, status to http response writer with JSON format: {"code": status, "message": error}
 func Error(w http.ResponseWriter, err error, status int) {
 	if appError, ok := err.(appError); ok {
-		JSON(w, status, appError)
+		JSON(w, appError.Status(), appError)
 		return
 	}
 	JSON(w, status, map[string]interface{}{

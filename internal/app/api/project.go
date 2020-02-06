@@ -1,8 +1,10 @@
 package api
 
-import "github.com/gotasma/internal/app/project"
+import (
+	"github.com/gotasma/internal/app/project"
+)
 
-func newProjectService(policy project.PolicyService, updateUser project.UpdateUserInfo) (*project.Service, error) {
+func newProjectService(policy project.PolicyService, updateUser project.UserService) (*project.Service, error) {
 	s, err := dialDefaultMongoDB()
 	if err != nil {
 		return nil, err

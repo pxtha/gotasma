@@ -5,10 +5,11 @@ import (
 	"strconv"
 
 	"github.com/casbin/casbin"
-	"github.com/sirupsen/logrus"
 	"github.com/gotasma/internal/app/auth"
 	"github.com/gotasma/internal/app/status"
 	"github.com/gotasma/internal/app/types"
+
+	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -44,7 +45,7 @@ func (s *Service) isAllowed(ctx context.Context, sub string, obj string, act str
 }
 
 func (s *Service) Validate(ctx context.Context, obj string, act string) error {
-
+	//Set sub by role PM or DEV
 	sub := types.PolicySubjectAny
 
 	user := auth.FromContext(ctx)
@@ -52,12 +53,13 @@ func (s *Service) Validate(ctx context.Context, obj string, act string) error {
 		if user.Role == types.PM {
 			return nil
 		}
-
 		sub = strconv.Itoa(int(user.Role))
 	}
-
+	//Check casbin file for policy
+	//TODO set role for dev to VIEW only project of devs
+	//TODO dev can ADD new task - this task automate assign to dev, modify task assigned to dev, dev cannot assign another dev to task
 	if !s.isAllowed(ctx, sub, obj, act) {
-		logrus.WithContext(ctx).WithFields(logrus.Fields{"sub": sub, "action": act, "obj": obj}).Errorf("the user is not authorized to do the action")
+		logrus.Errorf("the user is not authorized to do the action")
 		return status.Policy().Unauthorized
 	}
 

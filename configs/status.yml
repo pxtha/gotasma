@@ -4,19 +4,19 @@ gen:
     status: 200
     message: "Success"
   not_found:
-    code: 1001
+    code: 1010
     status: 404
     message: "Not found"
   timeout:
-    code: 1002
+    code: 1020
     status: 500
     message: "Timeout"
   bad_request:
-    code: 1003
+    code: 1030
     status: 400
-    message: "Bad request"
+    message: "Invalid input"
   internal:
-    code: 1004
+    code: 1040
     status: 500
     message: "Internal server error"
 auth:
@@ -29,11 +29,19 @@ user:
     code: 1300
     status: 400
     message: "Duplicated email"
+  not_found_user:
+    code: 1310
+    status: 400
+    message: "Not found user"
 holiday:
   duplicated_holiday:
     code: 1400
     status: 400
     message: "Duplicated holiday"
+  not_found_holiday:
+    code: 1410
+    status: 400
+    message: "Not found holiday"
 policy:
   unauthorized:
     code: 1100
@@ -42,7 +50,7 @@ policy:
 sercurity:
   invalid_action:
     code: 9999
-    status: 401
+    status: 400
     message: "You shouldn't do this!"
 project:
   duplicated_project:
@@ -50,10 +58,14 @@ project:
     status: 400
     message: "Duplicated project"
   already_in_project:
-    code: 1510
+    code: 1530
     status: 400
     message: "User already in project"
   not_in_project:
     code: 1520
     status: 400
     message: "User not in this project"
+  not_found_project:
+    code: 1510
+    status: 400
+    message: "Project not found"

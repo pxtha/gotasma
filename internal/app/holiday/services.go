@@ -10,6 +10,7 @@ import (
 	"github.com/gotasma/internal/pkg/db"
 	"github.com/gotasma/internal/pkg/uuid"
 	"github.com/gotasma/internal/pkg/validator"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -26,35 +27,38 @@ type (
 	PolicyServices interface {
 		Validate(ctx context.Context, obj string, act string) error
 	}
-	Services struct {
+	Service struct {
 		repo   Repository
 		policy PolicyServices
 	}
 )
 
-func New(repo Repository, policy PolicyServices) *Services {
-	return &Services{
+func New(repo Repository, policy PolicyServices) *Service {
+	return &Service{
 		repo:   repo,
 		policy: policy,
 	}
 }
 
-func (s *Services) Create(ctx context.Context, req *types.HolidayRequest) (*types.Holiday, error) {
+func (s *Service) Create(ctx context.Context, req *types.HolidayRequest) (*types.Holiday, error) {
 	pm := auth.FromContext(ctx)
 
-	if err := s.policy.Validate(ctx, types.ObjectHoliday, types.ActionHoliday); err != nil {
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
 		return nil, err
 	}
 
 	if err := validator.Validate(req); err != nil {
+		logrus.Error("Failed to validate input create holiday %v", err)
 		return nil, err
 	}
 
 	existingHoliday, err := s.repo.FindByTitle(ctx, req.Title, pm.UserID)
 	if err != nil && !db.IsErrNotFound(err) {
-		return nil, fmt.Errorf("failed to check existing holiday by title: %w", err)
+		logrus.Error("Failed to check existing holiday by title %w", err)
+		return nil, fmt.Errorf("Failed to check existing holiday by title: %w", err)
 	}
 	if existingHoliday != nil {
+		logrus.Error("Holiday all ready exist")
 		return nil, status.Hoiday().DuplicatedHoliday
 	}
 
@@ -72,17 +76,18 @@ func (s *Services) Create(ctx context.Context, req *types.HolidayRequest) (*type
 	return holiday, nil
 }
 
-func (s *Services) Delete(ctx context.Context, id string) error {
-	if err := s.policy.Validate(ctx, types.PolicyObjectDeleteDev, types.PolicyActionDevDelete); err != nil {
+func (s *Service) Delete(ctx context.Context, id string) error {
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
 		return err
 	}
 	if err := s.repo.Delete(ctx, id); err != nil {
-		return status.Gen().NotFound
+		logrus.Errorf("Fail to delete holiday due to %v", err)
+		return status.Hoiday().NotFoundHoliday
 	}
 	return nil
 }
 
-func (s *Services) FindAll(ctx context.Context) ([]*types.Holiday, error) {
+func (s *Service) FindAll(ctx context.Context) ([]*types.Holiday, error) {
 
 	user := auth.FromContext(ctx)
 

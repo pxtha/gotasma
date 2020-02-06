@@ -16,12 +16,14 @@ type (
 		AllChildren      []string `json:"all_children,omitempty" bson:"all_children,omitempty"`
 		Progress         int      `json:"progress,omitempty" bson:"progress,omitempty"`
 		Effort           int      `json:"effort,omitempty" bson:"effort,omitempty"`
+		DevsID           []string `json:"devs_id,omitempty" bson:"dev_id,omitempty"`
 	}
+
 	Project struct {
 		Name      string    `json:"name,omitempty" bson:"name,omitempty"`
 		ProjectID string    `json:"project_id,omitempty" bson:"project_id,omitempty"`
 		CreaterID string    `json:"creater_id,omitempty" bson:"creater_id,omitempty"`
-		DevsID    []string  `json:"dev_id,omitempty" bson:"dev_id,omitempty"`
+		DevsID    []string  `json:"devs_id,omitempty" bson:"devs_id,omitempty"`
 		Tasks     []Task    `json:"tasks,omitempty" bson:"tasks,omitempty"`
 		CreatedAt time.Time `json:"created_at,omitempty" bson:"created_at,omitempty"`
 		UpdateAt  time.Time `json:"updated_at,omitempty" bson:"updated_at,omitempty"`

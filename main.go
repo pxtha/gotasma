@@ -7,6 +7,12 @@ import (
 	"github.com/gotasma/internal/pkg/http/server"
 )
 
+//Logrus formatter
+func init() {
+	logrus.SetFormatter(&logrus.TextFormatter{
+		ForceColors: true,
+	})
+}
 func main() {
 
 	router, err := api.NewRouter()

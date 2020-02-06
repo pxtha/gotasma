@@ -18,19 +18,32 @@ func (h *Handler) Routes() []router.Route {
 		{
 			Path:        "/api/v1/projects",
 			Method:      http.MethodGet,
-			Handler:     h.FindAll,
+			Handler:     h.FindAllProjects,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+		},
+		{
+			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}",
+			Method:      http.MethodDelete,
+			Handler:     h.Delete,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+		},
+		{
+			Path:   "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/devs",
+			Method: http.MethodGet,
+			//Find all devs of this project
+			Handler:     h.FindAllDevs,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
 		{
 			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/devs",
 			Method:      http.MethodPut,
-			Handler:     h.AddProjectToUser,
+			Handler:     h.AddDevs,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
 		{
 			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/devs",
 			Method:      http.MethodDelete,
-			Handler:     h.RemoveUserFromProject,
+			Handler:     h.RemoveDev,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
 	}

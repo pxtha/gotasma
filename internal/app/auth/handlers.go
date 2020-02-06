@@ -31,6 +31,7 @@ func (h *Handler) Auth(w http.ResponseWriter, r *http.Request) {
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+
 		respond.Error(w, err, http.StatusInternalServerError)
 		return
 	}

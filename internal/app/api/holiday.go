@@ -4,7 +4,7 @@ import (
 	"github.com/gotasma/internal/app/holiday"
 )
 
-func newHolidayService(policy holiday.PolicyServices) (*holiday.Services, error) {
+func newHolidayService(policy holiday.PolicyServices) (*holiday.Service, error) {
 	s, err := dialDefaultMongoDB()
 	if err != nil {
 		return nil, err
@@ -14,6 +14,6 @@ func newHolidayService(policy holiday.PolicyServices) (*holiday.Services, error)
 	return holiday.New(repo, policy), nil
 }
 
-func newHolidayHandler(srv *holiday.Services) *holiday.Handler {
+func newHolidayHandler(srv *holiday.Service) *holiday.Handler {
 	return holiday.NewHanlder(srv)
 }

@@ -43,7 +43,7 @@ func (r *MongoDBRepository) FindByProjectID(ctx context.Context, projectID strin
 }
 
 func (r *MongoDBRepository) FindAllByUserID(ctx context.Context, id string, role types.Role) ([]*types.Project, error) {
-	searchBy := "dev_id"
+	searchBy := "devs_id"
 	if role == types.PM {
 		searchBy = "creater_id"
 	}
@@ -57,17 +57,52 @@ func (r *MongoDBRepository) FindAllByUserID(ctx context.Context, id string, role
 	return project, nil
 }
 
-func (r *MongoDBRepository) Create(ctx context.Context, project *types.Project) (string, error) {
+func (r *MongoDBRepository) Create(ctx context.Context, project *types.Project) error {
 	s := r.session.Clone()
 	defer s.Clone()
 
 	project.CreatedAt = time.Now()
 	project.UpdateAt = project.CreatedAt
 
-	if err := r.collection(s).Insert(project); err != nil {
-		return "", err
+	return r.collection(s).Insert(project)
+
+}
+
+func (r *MongoDBRepository) Delete(ctx context.Context, id string) error {
+	s := r.session.Clone()
+	defer s.Close()
+	if err := r.collection(s).Remove(bson.M{"project_id": id}); err != nil {
+		return err
 	}
-	return project.ProjectID, nil
+	return nil
+}
+
+func (r *MongoDBRepository) UpdateDevsID(ctx context.Context, devsID []string, projectID string, addToSet bool) error {
+
+	s := r.session.Clone()
+	defer s.Clone()
+	//add data to array if not exist
+	action := "$addToSet"
+	data := bson.M{
+		"devs_id": bson.M{
+			"$each": devsID,
+		},
+	}
+	//pull data out of array
+	if !addToSet {
+		action = "$pull"
+		data = bson.M{
+			"devs_id": devsID[0],
+		}
+	}
+
+	return r.collection(s).Update(bson.M{"project_id": projectID}, bson.M{
+		"$set": bson.M{
+			"updated_at": time.Now(),
+		},
+		action: data,
+	},
+	)
 }
 
 func (r *MongoDBRepository) collection(s *mgo.Session) *mgo.Collection {

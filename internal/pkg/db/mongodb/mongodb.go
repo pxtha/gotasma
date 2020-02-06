@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/globalsign/mgo"
-	"github.com/labstack/gommon/log"
+	"github.com/sirupsen/logrus"
 
 	envconfig "github.com/gotasma/internal/pkg/env"
 )
@@ -29,7 +29,7 @@ func LoadConfigFromEnv() *Config {
 
 // Dial dial to target server with Monotonic mode
 func Dial(conf *Config) (*mgo.Session, error) {
-	log.Infof("dialing to target MongoDB at: %v, database: %v", conf.Addrs, conf.Database)
+	logrus.Infof("Dialing to target MongoDB at: %v, Database: %v", conf.Addrs, conf.Database)
 	ms, err := mgo.DialWithInfo(&mgo.DialInfo{
 		Addrs:    conf.Addrs,
 		Database: conf.Database,
@@ -41,7 +41,7 @@ func Dial(conf *Config) (*mgo.Session, error) {
 		return nil, err
 	}
 	ms.SetMode(mgo.Monotonic, true)
-	log.Infof("successfully dialing to MongoDB at %v", conf.Addrs)
+	logrus.Infof("successfully dialing to MongoDB at %v", conf.Addrs)
 	return ms, nil
 }
 

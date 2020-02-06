@@ -7,32 +7,37 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/gotasma/internal/pkg/status"
+	"github.com/sirupsen/logrus"
 )
 
 type (
-	Status    = status.Status
+	//Status format from status pkg
+	Status = status.Status
+
 	GenStatus struct {
 		Success    Status
 		NotFound   Status `yaml:"not_found"`
-		Timeout    status.Timeout
 		BadRequest Status `yaml:"bad_request"`
 		Internal   Status
 	}
+
 	ProjectStatus struct {
+		NotFoundProject  Status `yaml:"not_found_project"`
 		DuplicateProject Status `yaml:"duplicated_project"`
 		AlreadyInProject Status `yaml:"already_in_project"`
 		NotInProject     Status `yaml:"not_in_project"`
 	}
 	HolidayStatus struct {
 		DuplicatedHoliday Status `yaml:"duplicated_holiday"`
+		NotFoundHoliday   Status `yaml:"not_found_holiday"`
 	}
 	PolicyStatus struct {
 		Unauthorized Status
 	}
 	UserStatus struct {
 		DuplicatedEmail Status `yaml:"duplicated_email"`
+		NotFoundUser    Status `yaml:"not_found_user"`
 	}
-
 	AuthStatus struct {
 		InvalidUserPassword Status `yaml:"invalid_user_password"`
 	}
@@ -60,11 +65,14 @@ var (
 func Init(conf string) {
 	once.Do(func() {
 		f, err := os.Open(conf)
+		logrus.Infof("Succesful open status file")
 		if err != nil {
+			logrus.Errorf("Fail to open status file, %v", err)
 			panic(err)
 		}
 		all = &statuses{}
 		if err := yaml.NewDecoder(f).Decode(all); err != nil {
+			logrus.Errorf("Fail to parse status file data to statuses struct, %v", err)
 			panic(err)
 		}
 	})
@@ -76,11 +84,8 @@ func load() *statuses {
 	conf := os.Getenv("STATUS_PATH")
 	if conf == "" {
 		conf = "configs/status.yml"
-
 	}
-	if all == nil {
-		Init(conf)
-	}
+	Init(conf)
 	return all
 }
 
