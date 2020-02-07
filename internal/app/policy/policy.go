@@ -54,9 +54,11 @@ func (s *Service) Validate(ctx context.Context, obj string, act string) error {
 		}
 		sub = strconv.Itoa(int(user.Role))
 	}
+
 	//Check casbin file for policy
 	//TODO set role for dev to VIEW only project of devs
 	//TODO dev can ADD new task - this task automate assign to dev, modify task assigned to dev, dev cannot assign another dev to task
+
 	if !s.isAllowed(ctx, sub, obj, act) {
 		logrus.Errorf("the user is not authorized to do the action")
 		return status.Policy().Unauthorized

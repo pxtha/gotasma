@@ -6,18 +6,17 @@ type (
 	Task struct {
 		Label            string   `json:"label,omitempty" bson:"label" validate:"required"`
 		TaskID           string   `json:"task_id,omitempty" bson:"task_id" validate:"required"`
-		Start            int      `json:"start,omitempty" bson:"start" validate:"required,gt=1262304000000"`
+		Start            int      `json:"start,omitempty" bson:"start" validate:"gt=1262304000000"`
 		Duration         int      `json:"duration,omitempty" bson:"duration"`
 		EstimateDuration int      `json:"estimate_duration,omitempty" bson:"estimate_duration"`
-		End              int      `json:"end,omitempty" bson:"end"`
+		End              int      `json:"end,omitempty" bson:"end"  validate:"gt=1262304000000"`
 		Parent           string   `json:"parent,omitempty" bson:"parent"`
 		Parents          []string `json:"parents,omitempty" bson:"parents"`
 		Children         []string `json:"children,omitempty" bson:"children"`
-		//json formatt base on font-end libray gantt elastic
-		AllChildren []string `json:"all_children,omitempty" bson:"all_children"`
-		Effort      int      `json:"effort,omitempty" bson:"effort"`
-		DevsID      []string `json:"devs_id,omitempty" bson:"dev_id"`
-		Type        string   `json:"type,omitempty" bson:"type"`
+		AllChildren      []string `json:"all_children,omitempty" bson:"all_children"`
+		Effort           int      `json:"effort,omitempty" bson:"effort"`
+		DevsID           []string `json:"devs_id,omitempty" bson:"dev_id"`
+		Type             string   `json:"type,omitempty" bson:"type" validate:"required"`
 	}
 
 	Project struct {

@@ -56,8 +56,7 @@ func (s *Service) Update(ctx context.Context, id string, req *types.ProjectInfo)
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
 		return nil, err
 	}
-
-	logrus.Info(req)
+	//validate incoming data
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to update project due to invalid req, %w", err)
 		return nil, err
@@ -74,6 +73,33 @@ func (s *Service) Update(ctx context.Context, id string, req *types.ProjectInfo)
 		logrus.Errorf("Project doesn't exist")
 		return nil, status.Project().NotFoundProject
 	}
+
+	//validate each task
+	for _, task := range req.Tasks {
+		if err := validator.Validate(task); err != nil {
+			logrus.Errorf("Fail to update project due to invalid req, %w", err)
+			return nil, err
+		}
+		for i, devInTask := range task.DevsID {
+			devIsInProject := false
+			for _, dev := range project.DevsID {
+				if devInTask == dev {
+					devIsInProject = true
+				}
+			}
+
+			//remove id devs from tasks if dev not current in project
+			if !devIsInProject {
+
+				task.DevsID[i] = task.DevsID[len(task.DevsID)-1]
+				//task.DevsID = task.DevsID[:len(task.DevsID)-1]
+			}
+
+		}
+	}
+	//Just update tasks field of project
+	//VueJS will do all the validation for data comes in
+	//So that user can edit tasks as long as they want, only save tasks when user use update task API
 
 	if err = s.repo.Update(ctx, id, req); err != nil {
 		logrus.Errorf("failed to update project: %v", err)
