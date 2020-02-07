@@ -4,34 +4,40 @@ import "time"
 
 type (
 	Task struct {
-		Label            string   `json:"label,omitempty" bson:"label,omitempty"`
-		TaskID           string   `json:"task_id,omitempty" bson:"task_id,omitempty"`
-		Start            int      `json:"start,omitempty" bson:"start,omitempty"`
-		Duration         int      `json:"duration,omitempty" bson:"duration,omitempty"`
-		EstimateDuration int      `json:"estimate_duration,omitempty" bson:"estimate_duration,omitempty"`
-		End              int      `json:"end,omitempty" bson:"end,omitempty"`
-		Parent           string   `json:"parent,omitempty" bson:"parent,omitempty"`
-		AllParent        []string `json:"all_parent,omitempty" bson:"all_parent,omitempty"`
-		Children         []string `json:"children,omitempty" bson:"children,omitempty"`
-		AllChildren      []string `json:"all_children,omitempty" bson:"all_children,omitempty"`
-		Progress         int      `json:"progress,omitempty" bson:"progress,omitempty"`
-		Effort           int      `json:"effort,omitempty" bson:"effort,omitempty"`
-		DevsID           []string `json:"devs_id,omitempty" bson:"dev_id,omitempty"`
+		Label            string   `json:"label,omitempty" bson:"label" validate:"required"`
+		TaskID           string   `json:"task_id,omitempty" bson:"task_id" validate:"required"`
+		Start            int      `json:"start,omitempty" bson:"start" validate:"required,gt=1262304000000"`
+		Duration         int      `json:"duration,omitempty" bson:"duration"`
+		EstimateDuration int      `json:"estimate_duration,omitempty" bson:"estimate_duration"`
+		End              int      `json:"end,omitempty" bson:"end"`
+		Parent           string   `json:"parent,omitempty" bson:"parent"`
+		Parents          []string `json:"parents,omitempty" bson:"parents"`
+		Children         []string `json:"children,omitempty" bson:"children"`
+		//json formatt base on font-end libray gantt elastic
+		AllChildren []string `json:"all_children,omitempty" bson:"all_children"`
+		Effort      int      `json:"effort,omitempty" bson:"effort"`
+		DevsID      []string `json:"devs_id,omitempty" bson:"dev_id"`
+		Type        string   `json:"type,omitempty" bson:"type"`
 	}
 
 	Project struct {
-		Name      string    `json:"name,omitempty" bson:"name,omitempty"`
-		ProjectID string    `json:"project_id,omitempty" bson:"project_id,omitempty"`
-		CreaterID string    `json:"creater_id,omitempty" bson:"creater_id,omitempty"`
-		DevsID    []string  `json:"devs_id,omitempty" bson:"devs_id,omitempty"`
-		Tasks     []Task    `json:"tasks,omitempty" bson:"tasks,omitempty"`
-		CreatedAt time.Time `json:"created_at,omitempty" bson:"created_at,omitempty"`
-		UpdateAt  time.Time `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
-		Highlight bool      `json:"highlight,omitempty" bson:"highlight,omitempty"`
+		Name      string    `json:"name,omitempty" bson:"name"`
+		ProjectID string    `json:"project_id,omitempty" bson:"project_id"`
+		CreaterID string    `json:"creater_id,omitempty" bson:"creater_id"`
+		DevsID    []string  `json:"devs_id,omitempty" bson:"devs_id"`
+		Tasks     []Task    `json:"tasks,omitempty" bson:"tasks"`
+		CreatedAt time.Time `json:"created_at,omitempty" bson:"created_at"`
+		UpdateAt  time.Time `json:"updated_at,omitempty" bson:"updated_at"`
+		Highlight bool      `json:"highlight,omitempty" bson:"highlight"`
 	}
 
 	CreateProjectRequest struct {
 		Name string `json:"name,omitempty"  validate:"required,gt=3"`
+	}
+
+	ProjectInfo struct {
+		Name  string `json:"name,omitempty" validate:"required"`
+		Tasks []Task `json:"tasks,omitempty" validate:"required"`
 	}
 
 	RemoveUserRequest struct {

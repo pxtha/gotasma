@@ -15,9 +15,7 @@ import (
 
 type (
 	service interface {
-		//TODO validate end > start
 		Create(ctx context.Context, req *types.HolidayRequest) (*types.Holiday, error)
-		//TODO check holiday creater id before delete
 		Delete(ctx context.Context, id string) error
 		FindAll(ctx context.Context) ([]*types.Holiday, error)
 	}

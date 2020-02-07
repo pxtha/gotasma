@@ -1,0 +1,195 @@
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+.skin-blue .main-header .navbar {
+    background-color: #3fb0ac;
+}
+
+.navbar-custom-menu .navbar-nav>li>a:hover {
+    background-color: #f3f5f7;
+    color: #fff !important;
+}
+
+.navbar-custom-menu .navbar-nav>li>a>span {
+    color: #3fb0ac !important;
+}
+
+.skin-blue .main-header .navbar .sidebar-toggle {
+    color: #fff
+}
+
+.skin-blue .main-header .navbar .sidebar-toggle:hover {
+    color: #000;
+    background: rgba(0, 0, 0, 0.1)
+}
+
+.skin-blue .main-header .navbar .sidebar-toggle:hover {
+    background-color: #fff;
+    border-bottom: 3px solid #fff;
+}
+
+@media (max-width:767px) {
+    .skin-blue .main-header .navbar .dropdown-menu li.divider {
+        background-color: rgba(255, 255, 255, 0.1)
+    }
+    .skin-blue .main-header .navbar .dropdown-menu li a {
+        color: #000
+    }
+    .skin-blue .main-header .navbar .dropdown-menu li a:hover {
+        background: #fff
+    }
+}
+
+.skin-blue .main-header .logo {
+    background-color: #fff;
+    color: #3f3f3f;
+}
+
+.skin-blue .main-header .logo:hover {
+    background-color: #dddfd4
+}
+
+.skin-blue .main-header li.user-header {
+    background-color: #173e43b8
+}
+
+.skin-blue .content-header {
+    background: transparent
+}
+
+.skin-blue .wrapper,
+.skin-blue .main-sidebar,
+.skin-blue .left-side {
+    background-color: #fff;
+    color: #3f3f3f;
+}
+
+.skin-blue .sidebar-menu>li.header {
+    color: #3f3f3f;
+    background: #dddfd4;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.skin-blue .sidebar-menu>li>a {
+    border-left: 1px solid transparent;
+}
+
+.skin-blue .sidebar-menu>li:hover>a {
+    color: #3f3f3f;
+    background: #dddfd4;
+    border-left-color: #dddfd4;
+    transform: translate3d(0px, 5px, 5px);
+    -webkit-transition: transform 2s;
+    -moz-transition: transform 2s;
+    -o-transition: transform 2s;
+    transition: transform 2s;
+    -webkit-transition: background-color 0.3s ease-out;
+    -moz-transition: background-color 0.3s ease-out;
+    -o-transition: background-color 0.3s ease-out;
+    transition: background-color 0.3s ease-out;
+}
+
+.skin-blue .sidebar-menu>li>.treeview-menu {
+    margin: 0 1px;
+    background: #dddfd4
+}
+
+.skin-blue .sidebar a {
+    color: #3f3f3f
+}
+
+.skin-blue .sidebar .sidebar-menu li a span {
+    color: #3f3f3f
+}
+
+.skin-blue .sidebar a:hover {
+    text-decoration: none
+}
+
+.skin-blue .treeview-menu>li>a {
+    color: #3f3f3f;
+}
+
+.skin-blue .treeview-menu>li.active>a,
+.skin-blue .treeview-menu>li>a:hover {
+    color: #3f3f3f
+}
+
+.skin-blue .sidebar-form {
+    border-radius: 3px;
+    border: 1px solid #374850;
+    margin: 10px 10px
+}
+
+.skin-blue .sidebar-form input[type="text"],
+.skin-blue .sidebar-form .btn {
+    box-shadow: none;
+    background-color: transparent;
+    border: 1px solid transparent;
+    height: 35px;
+    -webkit-transition: all .3s ease-in-out;
+    -o-transition: all .3s ease-in-out;
+    transition: all .3s ease-in-out
+}
+
+.skin-blue .sidebar-form input[type="text"] {
+    color: #666;
+    border-top-left-radius: 2px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 2px
+}
+
+.skin-blue .sidebar-form input[type="text"]:focus,
+.skin-blue .sidebar-form input[type="text"]:focus+.input-group-btn .btn {
+    background-color: #EEEEE7;
+    color: #666
+}
+
+.skin-blue .sidebar-form input[type="text"]:focus+.input-group-btn .btn {
+    border-left-color: #EEEEE7
+}
+
+.skin-blue .sidebar-form .btn {
+    color: #999;
+    border-top-left-radius: 0;
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+    border-bottom-left-radius: 0
+}
+
+.skin-blue.layout-top-nav .main-header>.logo {
+    background-color: #3f3f3f;
+    color: #3f3f3f;
+    border-bottom: 0 solid transparent
+}
+
+.skin-blue.layout-top-nav .main-header>.logo:hover {
+    background-color: #3f3f3f
+}
+
+.skin-blue .dropdown-toggle {}
+
+.skin-blue .dropdown-toggle:hover {
+    background-color: transparent !important;
+}
+
+.skin-blue .dropdown-toggle span {
+    color: #eee
+}
+
+.skin-blue .dropdown-toggle span {
+    color: #eee
+}
+
+.skin-blue .dropdown-menu li p span,
+small {
+    color: #eee
+}
+
+.skin-blue .dropdown-menu li a span,
+small {
+    color: #eee
+}

@@ -28,6 +28,7 @@ type (
 		NotInProject     Status `yaml:"not_in_project"`
 	}
 	HolidayStatus struct {
+		InvalidHoliday    Status `yaml:"invalid_holiday"`
 		DuplicatedHoliday Status `yaml:"duplicated_holiday"`
 		NotFoundHoliday   Status `yaml:"not_found_holiday"`
 	}
@@ -113,7 +114,7 @@ func Sercurity() SercurityStatus {
 	return load().Sercurity
 }
 
-func Hoiday() HolidayStatus {
+func Holiday() HolidayStatus {
 	return load().Holiday
 }
 

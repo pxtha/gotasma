@@ -34,6 +34,10 @@ user:
     status: 400
     message: "Not found user"
 holiday:
+  invalid_holiday:
+    code: 1450
+    status: 400
+    message: "Holiday must be more than 1 day"
   duplicated_holiday:
     code: 1400
     status: 400

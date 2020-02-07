@@ -20,6 +20,7 @@ type (
 		FindAllByUserID(ctx context.Context, id string, role types.Role) ([]*types.Project, error)
 		Create(context.Context, *types.Project) error
 		Delete(ctx context.Context, id string) error
+		Update(ctx context.Context, id string, req *types.ProjectInfo) error
 		//Update action: addToSet or Pull
 		UpdateDevsID(ctx context.Context, devsID []string, projectID string, addToSet bool) error
 	}
@@ -47,6 +48,42 @@ func New(repo repository, policy PolicyService, updateUser UserService) *Service
 		policy: policy,
 		user:   updateUser,
 	}
+}
+
+func (s *Service) Update(ctx context.Context, id string, req *types.ProjectInfo) (*types.Project, error) {
+
+	//only PM can create Project
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return nil, err
+	}
+
+	logrus.Info(req)
+	if err := validator.Validate(req); err != nil {
+		logrus.Errorf("Fail to update project due to invalid req, %w", err)
+		return nil, err
+	}
+
+	project, err := s.repo.FindByProjectID(ctx, id)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Errorf("failed to check existing project by id: %v", err)
+		return nil, fmt.Errorf("failed to check existing project by id: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Errorf("Project doesn't exist")
+		return nil, status.Project().NotFoundProject
+	}
+
+	if err = s.repo.Update(ctx, id, req); err != nil {
+		logrus.Errorf("failed to update project: %v", err)
+		return nil, fmt.Errorf("failed to update project, %w", err)
+	}
+
+	//TODO add new history elasticsearch
+	//TODO calculate workload
+
+	return project, nil
 }
 
 func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (*types.Project, error) {
@@ -99,6 +136,23 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 		return status.Project().NotFoundProject
 	}
 	return nil
+}
+
+func (s *Service) FindByID(ctx context.Context, id string) (*types.Project, error) {
+
+	project, err := s.repo.FindByProjectID(ctx, id)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Errorf("failed to check existing project by ID: %v", err)
+		return nil, fmt.Errorf("failed to check existing project by ID: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Errorf("Project doesn't exist")
+		return nil, status.Project().NotFoundProject
+	}
+
+	return project, nil
 }
 
 func (s *Service) FindAllProjects(ctx context.Context) ([]*types.Project, error) {

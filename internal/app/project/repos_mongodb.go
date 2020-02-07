@@ -67,6 +67,20 @@ func (r *MongoDBRepository) Create(ctx context.Context, project *types.Project) 
 	return r.collection(s).Insert(project)
 
 }
+func (r *MongoDBRepository) Update(ctx context.Context, id string, req *types.ProjectInfo) error {
+	s := r.session.Clone()
+	defer s.Clone()
+
+	return r.collection(s).Update(bson.M{"project_id": id}, bson.M{
+		"$set": bson.M{
+			"updated_at": time.Now(),
+			"name":       req.Name,
+			"tasks":      req.Tasks,
+		},
+	},
+	)
+
+}
 
 func (r *MongoDBRepository) Delete(ctx context.Context, id string) error {
 	s := r.session.Clone()

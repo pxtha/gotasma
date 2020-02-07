@@ -27,6 +27,7 @@ func (h *Handler) Routes() []router.Route {
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
 		{
+			//DEV devs - get all devs of project - get project info
 			Path:        "/api/v1/devs/{user_id:[a-z0-9-\\-]+}",
 			Method:      http.MethodDelete,
 			Handler:     h.Delete,

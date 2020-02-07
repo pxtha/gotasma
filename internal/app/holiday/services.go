@@ -52,6 +52,13 @@ func (s *Service) Create(ctx context.Context, req *types.HolidayRequest) (*types
 		return nil, err
 	}
 
+	//Duration >= 1 day
+	HolidayDuration := ((req.End - req.Start) / MilisecondInDay)
+	if HolidayDuration < 1 {
+		logrus.Error("Failed to validate input create holiday ")
+		return nil, status.Holiday().InvalidHoliday
+	}
+
 	existingHoliday, err := s.repo.FindByTitle(ctx, req.Title, pm.UserID)
 	if err != nil && !db.IsErrNotFound(err) {
 		logrus.Error("Failed to check existing holiday by title %w", err)
@@ -59,7 +66,7 @@ func (s *Service) Create(ctx context.Context, req *types.HolidayRequest) (*types
 	}
 	if existingHoliday != nil {
 		logrus.Error("Holiday all ready exist")
-		return nil, status.Hoiday().DuplicatedHoliday
+		return nil, status.Holiday().DuplicatedHoliday
 	}
 
 	holiday := &types.Holiday{
@@ -82,7 +89,7 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	}
 	if err := s.repo.Delete(ctx, id); err != nil {
 		logrus.Errorf("Fail to delete holiday due to %v", err)
-		return status.Hoiday().NotFoundHoliday
+		return status.Holiday().NotFoundHoliday
 	}
 	return nil
 }
