@@ -80,21 +80,17 @@ func (s *Service) Update(ctx context.Context, id string, req *types.ProjectInfo)
 			logrus.Errorf("Fail to update project due to invalid req, %w", err)
 			return nil, err
 		}
-		for i, devInTask := range task.DevsID {
+		for _, devInTask := range task.DevsID {
 			devIsInProject := false
 			for _, dev := range project.DevsID {
 				if devInTask == dev {
 					devIsInProject = true
 				}
 			}
-
-			//remove id devs from tasks if dev not current in project
 			if !devIsInProject {
-
-				task.DevsID[i] = task.DevsID[len(task.DevsID)-1]
-				//task.DevsID = task.DevsID[:len(task.DevsID)-1]
+				logrus.Errorf("Devs %v in tasks %v not found ", devInTask, task.TaskID)
+				return nil, status.Project().NotFoundDev
 			}
-
 		}
 	}
 	//Just update tasks field of project
@@ -178,7 +174,53 @@ func (s *Service) FindByID(ctx context.Context, id string) (*types.Project, erro
 		return nil, status.Project().NotFoundProject
 	}
 
-	return project, nil
+	//Remove devIds from tasks if dev no longer in project
+	taskInfo := make([]types.Task, 0)
+
+	for _, task := range project.Tasks {
+
+		for i, inTask := range task.DevsID {
+			check := false
+			for _, inProject := range project.DevsID {
+				if inTask == inProject {
+					check = true
+				}
+			}
+			if check == false {
+				task.DevsID[i] = task.DevsID[len(task.DevsID)-1]
+				task.DevsID = task.DevsID[:len(task.DevsID)-1]
+			}
+		}
+		taskInfo = append(taskInfo, types.Task{
+			Label:            task.Label,
+			AllChildren:      task.AllChildren,
+			Children:         task.Children,
+			DevsID:           task.DevsID,
+			Duration:         task.Duration,
+			Effort:           task.Effort,
+			End:              task.End,
+			EstimateDuration: task.EstimateDuration,
+			Parent:           task.Parent,
+			Parents:          task.Parents,
+			Start:            task.Start,
+			TaskID:           task.TaskID,
+			Type:             task.Type,
+		})
+	}
+
+	var info *types.Project
+	info = &types.Project{
+		Name:      project.Name,
+		CreatedAt: project.CreatedAt,
+		CreaterID: project.CreaterID,
+		DevsID:    project.DevsID,
+		Highlight: project.Highlight,
+		ProjectID: project.ProjectID,
+		Tasks:     taskInfo,
+		UpdateAt:  project.UpdateAt,
+	}
+
+	return info, nil
 }
 
 func (s *Service) FindAllProjects(ctx context.Context) ([]*types.Project, error) {

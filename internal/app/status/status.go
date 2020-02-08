@@ -4,10 +4,9 @@ import (
 	"os"
 	"sync"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/gotasma/internal/pkg/status"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 type (
@@ -26,6 +25,7 @@ type (
 		DuplicateProject Status `yaml:"duplicated_project"`
 		AlreadyInProject Status `yaml:"already_in_project"`
 		NotInProject     Status `yaml:"not_in_project"`
+		NotFoundDev      Status `yaml:"not_found_dev"`
 	}
 	HolidayStatus struct {
 		InvalidHoliday    Status `yaml:"invalid_holiday"`

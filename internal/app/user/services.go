@@ -4,15 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/gotasma/internal/app/auth"
 	"github.com/gotasma/internal/app/status"
 	"github.com/gotasma/internal/app/types"
 	"github.com/gotasma/internal/pkg/db"
 	"github.com/gotasma/internal/pkg/uuid"
 	"github.com/gotasma/internal/pkg/validator"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type (
@@ -67,13 +66,15 @@ func (s *Service) Register(ctx context.Context, req *types.RegisterRequest) (*ty
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate password: %w", err)
 	}
+	userID := uuid.New()
 	user := &types.User{
 		Password:  password,
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Email:     req.Email,
 		Role:      types.PM,
-		UserID:    uuid.New(),
+		UserID:    userID,
+		CreaterID: userID,
 	}
 
 	if _, err := s.repo.Create(ctx, user); err != nil {
@@ -166,27 +167,12 @@ func (s *Service) FindAllDev(ctx context.Context) ([]*types.UserInfo, error) {
 
 	pm := auth.FromContext(ctx)
 
-	pmInfo, err := s.repo.FindByID(ctx, pm.UserID)
-	if err != nil {
-		logrus.Error("PM not found, err: %v", err)
-		return nil, err
-	}
 	users, err := s.repo.FindAllDev(ctx, pm.UserID)
 	if err != nil {
 		logrus.Error("can not find devs of PM, err: %v", err)
 		return nil, err
 	}
 	info := make([]*types.UserInfo, 0)
-	info = append(info, &types.UserInfo{
-		Email:     pmInfo.Email,
-		FirstName: pmInfo.FirstName,
-		LastName:  pmInfo.LastName,
-		Role:      pmInfo.Role,
-		CreaterID: pmInfo.CreaterID,
-		UserID:    pmInfo.UserID,
-		CreatedAt: pmInfo.CreatedAt,
-		UpdateAt:  pmInfo.UpdateAt,
-	})
 	for _, usr := range users {
 		info = append(info, &types.UserInfo{
 			Email:     usr.Email,

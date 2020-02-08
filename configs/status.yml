@@ -73,3 +73,7 @@ project:
     code: 1510
     status: 400
     message: "Project not found"
+  not_found_dev:
+    code: 1540
+    status: 400
+    message: "Dev not found in project"
