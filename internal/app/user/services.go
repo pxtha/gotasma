@@ -46,7 +46,7 @@ func (s *Service) Register(ctx context.Context, req *types.RegisterRequest) (*ty
 
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to register PM due to invalid req, %w", err)
-		return nil, err
+		return nil, status.Gen().BadRequest
 	}
 
 	existingUser, err := s.repo.FindByEmail(ctx, req.Email)
@@ -62,11 +62,13 @@ func (s *Service) Register(ctx context.Context, req *types.RegisterRequest) (*ty
 		return nil, status.User().DuplicatedEmail
 	}
 
-	password, err := s.generatePassword(req.Password)
+	password, err := s.GeneratePassword(req.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate password: %w", err)
 	}
+
 	userID := uuid.New()
+
 	user := &types.User{
 		Password:  password,
 		FirstName: req.FirstName,
@@ -109,7 +111,7 @@ func (s *Service) CreateDev(ctx context.Context, req *types.RegisterRequest) (*t
 		return nil, status.User().DuplicatedEmail
 	}
 
-	password, err := s.generatePassword(req.Password)
+	password, err := s.GeneratePassword(req.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate password: %w", err)
 	}
@@ -134,7 +136,7 @@ func (s *Service) CreateDev(ctx context.Context, req *types.RegisterRequest) (*t
 	return user.Strip(), nil
 }
 
-func (s *Service) generatePassword(pass string) (string, error) {
+func (s *Service) GeneratePassword(pass string) (string, error) {
 	rs, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 	if err != nil {
 		logrus.Errorf("failed to check hash password, %v", err)
@@ -161,6 +163,7 @@ func (s *Service) Auth(ctx context.Context, email, password string) (*types.User
 }
 
 func (s *Service) FindAllDev(ctx context.Context) ([]*types.UserInfo, error) {
+
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
 		return nil, err
 	}
@@ -169,9 +172,10 @@ func (s *Service) FindAllDev(ctx context.Context) ([]*types.UserInfo, error) {
 
 	users, err := s.repo.FindAllDev(ctx, pm.UserID)
 	if err != nil {
-		logrus.Error("can not find devs of PM, err: %v", err)
+		logrus.Errorf("can not find devs of PM, err: %v", err)
 		return nil, err
 	}
+
 	info := make([]*types.UserInfo, 0)
 	for _, usr := range users {
 		info = append(info, &types.UserInfo{
