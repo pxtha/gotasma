@@ -23,7 +23,6 @@ type (
 		FindDevsByID(ctx context.Context, userIDs []string) ([]*types.User, error)
 		Delete(cxt context.Context, id string) error
 		FindByID(ctx context.Context, UserID string) (*types.User, error)
-		UpdateUserProjectsID(context.Context, string, string, string) error
 	}
 
 	PolicyService interface {
