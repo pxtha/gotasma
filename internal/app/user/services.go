@@ -10,6 +10,7 @@ import (
 	"github.com/gotasma/internal/pkg/db"
 	"github.com/gotasma/internal/pkg/uuid"
 	"github.com/gotasma/internal/pkg/validator"
+
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -46,7 +47,8 @@ func (s *Service) Register(ctx context.Context, req *types.RegisterRequest) (*ty
 
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to register PM due to invalid req, %w", err)
-		return nil, err
+		validateErr := err.Error()
+		return nil, fmt.Errorf(validateErr+"err: %w", status.Gen().BadRequest)
 	}
 
 	existingUser, err := s.repo.FindByEmail(ctx, req.Email)
@@ -62,10 +64,11 @@ func (s *Service) Register(ctx context.Context, req *types.RegisterRequest) (*ty
 		return nil, status.User().DuplicatedEmail
 	}
 
-	password, err := s.generatePassword(req.Password)
+	password, err := s.GeneratePassword(req.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate password: %w", err)
 	}
+
 	userID := uuid.New()
 	user := &types.User{
 		Password:  password,
@@ -91,10 +94,10 @@ func (s *Service) CreateDev(ctx context.Context, req *types.RegisterRequest) (*t
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
 		return nil, err
 	}
-
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to register DEV due to invalid req, %v", err)
-		return nil, err
+		validateErr := err.Error()
+		return nil, fmt.Errorf(validateErr+"err: %w", status.Gen().BadRequest)
 	}
 
 	existingUser, err := s.repo.FindByEmail(ctx, req.Email)
@@ -109,7 +112,7 @@ func (s *Service) CreateDev(ctx context.Context, req *types.RegisterRequest) (*t
 		return nil, status.User().DuplicatedEmail
 	}
 
-	password, err := s.generatePassword(req.Password)
+	password, err := s.GeneratePassword(req.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate password: %w", err)
 	}
@@ -134,7 +137,7 @@ func (s *Service) CreateDev(ctx context.Context, req *types.RegisterRequest) (*t
 	return user.Strip(), nil
 }
 
-func (s *Service) generatePassword(pass string) (string, error) {
+func (s *Service) GeneratePassword(pass string) (string, error) {
 	rs, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 	if err != nil {
 		logrus.Errorf("failed to check hash password, %v", err)
@@ -169,7 +172,7 @@ func (s *Service) FindAllDev(ctx context.Context) ([]*types.UserInfo, error) {
 
 	users, err := s.repo.FindAllDev(ctx, pm.UserID)
 	if err != nil {
-		logrus.Error("can not find devs of PM, err: %v", err)
+		logrus.Errorf("can not find devs of PM, err: %v", err)
 		return nil, err
 	}
 	info := make([]*types.UserInfo, 0)
