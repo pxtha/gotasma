@@ -154,7 +154,7 @@ func (s *Service) Auth(ctx context.Context, email, password string) (*types.User
 	}
 	if db.IsErrNotFound(err) {
 		logrus.Debugf("user not found, email: %s", email)
-		return nil, err
+		return nil, status.User().NotFoundUser
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		logrus.Error("invalid password")
@@ -173,8 +173,9 @@ func (s *Service) FindAllDev(ctx context.Context) ([]*types.UserInfo, error) {
 	users, err := s.repo.FindAllDev(ctx, pm.UserID)
 	if err != nil {
 		logrus.Errorf("can not find devs of PM, err: %v", err)
-		return nil, err
+		return nil, status.User().NotFoundUser
 	}
+
 	info := make([]*types.UserInfo, 0)
 	for _, usr := range users {
 		info = append(info, &types.UserInfo{
