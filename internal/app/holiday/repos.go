@@ -22,6 +22,22 @@ func NewMongoRepository(session *mgo.Session) *MongoDBRepository {
 	}
 }
 
+func (r *MongoDBRepository) Update(ctx context.Context, holiday *types.HolidayInfo, id string) error {
+	s := r.session.Clone()
+	defer s.Close()
+
+	return r.collection(s).Update(bson.M{"holiday_id": id}, bson.M{
+		"$set": bson.M{
+			"updated_at": holiday.UpdateAt,
+			"title":      holiday.Title,
+			"start":      holiday.Start,
+			"end":        holiday.End,
+			"duration":   holiday.Duration,
+		},
+	},
+	)
+
+}
 func (r *MongoDBRepository) Create(ctx context.Context, holiday *types.Holiday) error {
 	s := r.session.Clone()
 	defer s.Close()
@@ -35,6 +51,18 @@ func (r *MongoDBRepository) Create(ctx context.Context, holiday *types.Holiday) 
 
 func (r *MongoDBRepository) FindByTitle(ctx context.Context, title string, createrID string) (*types.Holiday, error) {
 	selector := bson.M{"title": title, "creater_id": createrID}
+	s := r.session.Clone()
+	defer s.Close()
+	var holiday *types.Holiday
+	if err := r.collection(s).Find(selector).One(&holiday); err != nil {
+		return nil, err
+	}
+	return holiday, nil
+}
+
+func (r *MongoDBRepository) FindByID(ctx context.Context, id string) (*types.Holiday, error) {
+
+	selector := bson.M{"holiday_id": id}
 	s := r.session.Clone()
 	defer s.Close()
 	var holiday *types.Holiday

@@ -3,6 +3,7 @@ package holiday
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/gotasma/internal/app/auth"
 	"github.com/gotasma/internal/app/status"
@@ -20,7 +21,9 @@ const (
 type (
 	Repository interface {
 		Create(ctx context.Context, holiday *types.Holiday) error
+		Update(ctx context.Context, holiday *types.HolidayInfo, id string) error
 		FindByTitle(ctx context.Context, title string, createrID string) (*types.Holiday, error)
+		FindByID(ctx context.Context, id string) (*types.Holiday, error)
 		Delete(ctx context.Context, id string) error
 		FindAll(ctx context.Context, createrID string) ([]*types.Holiday, error)
 	}
@@ -53,8 +56,8 @@ func (s *Service) Create(ctx context.Context, req *types.HolidayRequest) (*types
 	}
 
 	//Duration >= 1 day
-	HolidayDuration := ((req.End - req.Start) / MilisecondInDay)
-	if HolidayDuration < 1 {
+	holidayDuration := ((req.End - req.Start) / MilisecondInDay)
+	if holidayDuration < 1 {
 		logrus.Error("Failed to validate input create holiday ")
 		return nil, status.Holiday().InvalidHoliday
 	}
@@ -74,13 +77,56 @@ func (s *Service) Create(ctx context.Context, req *types.HolidayRequest) (*types
 		Start:     req.Start,
 		End:       req.End,
 		HolidayID: uuid.New(),
-		Duration:  ((req.End - req.Start) / MilisecondInDay),
+		Duration:  holidayDuration,
 		CreaterID: pm.UserID,
 	}
 	if err := s.repo.Create(ctx, holiday); err != nil {
 		return nil, fmt.Errorf("Faild to insert Holiday, %w", err)
 	}
 	return holiday, nil
+}
+
+func (s *Service) Update(ctx context.Context, id string, req *types.HolidayRequest) (*types.HolidayInfo, error) {
+	pm := auth.FromContext(ctx)
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return nil, err
+	}
+
+	if err := validator.Validate(req); err != nil {
+		logrus.Error("Failed to validate input update holiday %v", err)
+		return nil, err
+	}
+
+	//Duration >= 1 day
+	holidayDuration := ((req.End - req.Start) / MilisecondInDay)
+	if holidayDuration < 1 {
+		logrus.Error("Failed to validate input update holiday ")
+		return nil, status.Holiday().InvalidHoliday
+	}
+
+	info := &types.HolidayInfo{
+		Title:    req.Title,
+		Start:    req.Start,
+		End:      req.End,
+		Duration: ((req.End - req.Start) / MilisecondInDay),
+		UpdateAt: time.Now(),
+	}
+
+	existingHoliday, err := s.repo.FindByTitle(ctx, req.Title, pm.UserID)
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Error("Failed to check existing holiday by title %w", err)
+		return nil, fmt.Errorf("Failed to check existing holiday by title: %w", err)
+	}
+	if existingHoliday != nil {
+		logrus.Error("Holiday all ready exist")
+		return nil, status.Holiday().DuplicatedHoliday
+	}
+
+	if err := s.repo.Update(ctx, info, id); err != nil {
+		return nil, fmt.Errorf("Faild to update Holiday, %w", err)
+	}
+
+	return info, nil
 }
 
 func (s *Service) Delete(ctx context.Context, id string) error {
@@ -117,6 +163,9 @@ func (s *Service) FindAll(ctx context.Context) ([]*types.Holiday, error) {
 			End:       holiday.End,
 			Duration:  holiday.Duration,
 			HolidayID: holiday.HolidayID,
+			CreatedAt: holiday.CreatedAt,
+			CreaterID: holiday.CreaterID,
+			UpdateAt:  holiday.UpdateAt,
 		})
 	}
 	return info, err

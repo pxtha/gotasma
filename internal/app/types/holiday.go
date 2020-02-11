@@ -14,6 +14,14 @@ type (
 		UpdateAt  time.Time `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
 	}
 
+	HolidayInfo struct {
+		Title    string    `json:"title,omitempty" `
+		Start    int       `json:"start,omitempty" `
+		End      int       `json:"end,omitempty" `
+		Duration int       `json:"duration,omitempty"`
+		UpdateAt time.Time `json:"updated_at,omitempty" `
+	}
+
 	HolidayRequest struct {
 		Title string `json:"title,omitempty"  validate:"required,gt=3"`
 		Start int    `json:"start,omitempty" validate:"required,gt=1262304000000"`

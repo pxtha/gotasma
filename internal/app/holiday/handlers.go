@@ -17,6 +17,7 @@ type (
 	service interface {
 		Create(ctx context.Context, req *types.HolidayRequest) (*types.Holiday, error)
 		Delete(ctx context.Context, id string) error
+		Update(ctx context.Context, id string, req *types.HolidayRequest) (*types.HolidayInfo, error)
 		FindAll(ctx context.Context) ([]*types.Holiday, error)
 	}
 	Handler struct {
@@ -65,6 +66,33 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		Data: types.IDResponse{
 			ID: id,
 		},
+	})
+}
+
+func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["holiday_id"]
+	if id == "" {
+		logrus.Error("Fail to Update holiday due to empty holiday ID ")
+		respond.Error(w, errors.New("invalid id"), http.StatusBadRequest)
+		return
+	}
+
+	var req types.HolidayRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logrus.Errorf("Fail to parse JSON into struct Holiday Request, %v", err)
+		respond.Error(w, err, http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	holiday, err := h.srv.Update(r.Context(), id, &req)
+	if err != nil {
+		logrus.Errorf("Fail to update holiday due to %v", err)
+		respond.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+	respond.JSON(w, http.StatusOK, types.BaseResponse{
+		Data: holiday,
 	})
 }
 

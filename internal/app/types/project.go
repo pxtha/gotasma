@@ -21,6 +21,7 @@ type (
 
 	Project struct {
 		Name      string    `json:"name,omitempty" bson:"name"`
+		Desc      string    `json:"description,omitempty" bson:"description"`
 		ProjectID string    `json:"project_id,omitempty" bson:"project_id"`
 		CreaterID string    `json:"creater_id,omitempty" bson:"creater_id"`
 		DevsID    []string  `json:"devs_id,omitempty" bson:"devs_id"`
@@ -32,6 +33,7 @@ type (
 
 	CreateProjectRequest struct {
 		Name string `json:"name,omitempty"  validate:"required,gt=3"`
+		Desc string `json:"description,omitempty"`
 	}
 
 	ProjectInfo struct {

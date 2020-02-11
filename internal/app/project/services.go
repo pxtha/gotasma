@@ -139,6 +139,7 @@ func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (
 		Highlight: true,
 		Name:      req.Name,
 		ProjectID: uuid.New(),
+		Desc:      req.Desc,
 	}
 
 	if err = s.repo.Create(ctx, project); err != nil {
@@ -218,6 +219,7 @@ func (s *Service) FindByID(ctx context.Context, id string) (*types.Project, erro
 		ProjectID: project.ProjectID,
 		Tasks:     taskInfo,
 		UpdateAt:  project.UpdateAt,
+		Desc:      project.Desc,
 	}
 
 	return info, nil

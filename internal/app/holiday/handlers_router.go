@@ -27,5 +27,12 @@ func (h *Handler) Routes() []router.Route {
 			Handler:     h.FindAll,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
+		//TODO update holiday
+		{
+			Path:        "/api/v1/holidays/{holiday_id:[a-z0-9-\\-]+}",
+			Method:      http.MethodPut,
+			Handler:     h.Update,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+		},
 	}
 }
