@@ -8,7 +8,7 @@ REALIZE_IMAGE=realize:$(REALIZE_VERSION)
 
 .SILENT:
 
-all: mod_tidy fmt vet install
+all: mod_tidy fmt vet test install 
 
 build:
 	$(GO_BUILD_ENV) go build -v -o $(PROJECT_NAME)-$(BUILD_VERSION).bin .
@@ -24,6 +24,9 @@ fmt:
 
 mod_tidy:
 	$(GO_BUILD_ENV) go mod tidy
+
+test:
+	$(GO_BUILD_ENV) go test $(GO_FILES) -cover -v
 
 compose_dev: realize
 	cd deployment/dev && REALIZE_VERSION=$(REALIZE_VERSION) docker-compose up
