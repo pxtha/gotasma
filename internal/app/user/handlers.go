@@ -56,6 +56,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) CreateDev(w http.ResponseWriter, r *http.Request) {
 	var req types.RegisterRequest
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logrus.Errorf("Fail to parse JSON to Register DEV Request struct, %w", err)
 		respond.Error(w, err, http.StatusBadRequest)
