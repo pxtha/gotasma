@@ -84,22 +84,6 @@ func (r *MongoDBRepository) Delete(ctx context.Context, id string) error {
 	return r.collection(s).Remove(bson.M{"user_id": id})
 }
 
-func (r *MongoDBRepository) UpdateUserProjectsID(ctx context.Context, userID string, projectID string, action string) error {
-
-	s := r.session.Clone()
-	defer s.Close()
-
-	return r.collection(s).Update(bson.M{"user_id": userID}, bson.M{
-		"$set": bson.M{
-			"updated_at": time.Now(),
-		},
-		action: bson.M{
-			"project_id": projectID,
-		},
-	},
-	)
-}
-
 func (r *MongoDBRepository) collection(s *mgo.Session) *mgo.Collection {
 	return s.DB("").C("user")
 }
