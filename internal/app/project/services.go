@@ -62,6 +62,8 @@ func (s *Service) Update(ctx context.Context, id string, req *types.ProjectInfo)
 		return nil, err
 	}
 
+	//Get lastest project
+	//Get lastest edit user
 	project, err := s.repo.FindByProjectID(ctx, id)
 
 	if err != nil && !db.IsErrNotFound(err) {
@@ -80,6 +82,7 @@ func (s *Service) Update(ctx context.Context, id string, req *types.ProjectInfo)
 			logrus.Errorf("Fail to update project due to invalid req, %w", err)
 			return nil, err
 		}
+
 		for _, devInTask := range task.DevsID {
 			devIsInProject := false
 			for _, dev := range project.DevsID {
@@ -89,10 +92,22 @@ func (s *Service) Update(ctx context.Context, id string, req *types.ProjectInfo)
 			}
 			if !devIsInProject {
 				logrus.Errorf("Devs %v in tasks %v not found ", devInTask, task.TaskID)
-				return nil, status.Project().NotFoundDev
+				return nil, fmt.Errorf("Dev: "+devInTask+" %w", status.Project().NotFoundDev)
+			}
+			//For sync data
+			//Update only changed task
+			for _, dbTask := range project.Tasks {
+				if dbTask.TaskID == task.TaskID {
+					if dbTask.UpdateAt == task.UpdateAt {
+						logrus.Info("here" + task.Label)
+						task = dbTask
+					}
+					break
+				}
 			}
 		}
 	}
+
 	//Just update tasks field of project
 	//VueJS will do all the validation for data comes in
 	//So that user can edit tasks as long as they want, only save tasks when user use update task API
@@ -192,6 +207,7 @@ func (s *Service) FindByID(ctx context.Context, id string) (*types.Project, erro
 				task.DevsID = task.DevsID[:len(task.DevsID)-1]
 			}
 		}
+
 		taskInfo = append(taskInfo, types.Task{
 			Label:            task.Label,
 			AllChildren:      task.AllChildren,
@@ -206,6 +222,7 @@ func (s *Service) FindByID(ctx context.Context, id string) (*types.Project, erro
 			Start:            task.Start,
 			TaskID:           task.TaskID,
 			Type:             task.Type,
+			UpdateAt:         task.UpdateAt,
 		})
 	}
 

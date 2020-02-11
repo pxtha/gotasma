@@ -46,12 +46,8 @@ func (s *Service) Register(ctx context.Context, req *types.RegisterRequest) (*ty
 
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to register PM due to invalid req, %w", err)
-<<<<<<< HEAD
-		return nil, status.Gen().BadRequest
-=======
 		validateErr := err.Error()
 		return nil, fmt.Errorf(validateErr+"err: %w", status.Gen().BadRequest)
->>>>>>> f68b6fcc1a0540bdd36aeac2e22b6769b6a4544e
 	}
 
 	existingUser, err := s.repo.FindByEmail(ctx, req.Email)
@@ -178,11 +174,7 @@ func (s *Service) FindAllDev(ctx context.Context) ([]*types.UserInfo, error) {
 	users, err := s.repo.FindAllDev(ctx, pm.UserID)
 	if err != nil {
 		logrus.Errorf("can not find devs of PM, err: %v", err)
-<<<<<<< HEAD
-		return nil, err
-=======
 		return nil, status.User().NotFoundUser
->>>>>>> f68b6fcc1a0540bdd36aeac2e22b6769b6a4544e
 	}
 
 	info := make([]*types.UserInfo, 0)
