@@ -2,9 +2,9 @@
 
 This project follows [golang-standards/project-layout](https://github.com/golang-standards/project-layout) and hence can be used as a reference for new Go developers.
 
--Name       : Project Management
--Objective	: Create a web application that helps manage project development’s processes. 
--Techs use	: VueJS, GoLang, MongoDB, Docker, ElasticSearch
+- Name: Project Management
+- Objective: Create a web application that helps manage project development’s processes.
+- Techs use: VueJS, GoLang, MongoDB, Docker, ElasticSearch
 
 **Note** that this project now is in active development, but feel free to make pull request.
 
