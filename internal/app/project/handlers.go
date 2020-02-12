@@ -17,13 +17,13 @@ import (
 type (
 	service interface {
 		Create(ctx context.Context, req *types.CreateProjectRequest) (*types.Project, error)
-		Update(ctx context.Context, id string, req *types.ProjectInfo) (*types.Project, error)
+		Update(ctx context.Context, id string, req *types.UpdateProject) (*types.Project, error)
 		Delete(ctx context.Context, id string) error
-		
-		FindAllProjects(ctx context.Context) ([]*types.Project, error)
+
+		FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, error)
 		FindAllDevs(context.Context, string) ([]*types.UserInfo, error)
 		FindByID(context.Context, string) (*types.Project, error)
-		
+
 		AddDevs(ctx context.Context, userID []string, projectID string) ([]string, error)
 		RemoveDev(ctx context.Context, userID string, projectID string) error
 	}
@@ -48,7 +48,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req types.ProjectInfo
+	var req types.UpdateProject
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logrus.Errorf("Fail to parse JSON to Update Project Request struct, %v", err)

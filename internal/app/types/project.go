@@ -26,10 +26,22 @@ type (
 		ProjectID string    `json:"project_id,omitempty" bson:"project_id"`
 		CreaterID string    `json:"creater_id,omitempty" bson:"creater_id"`
 		DevsID    []string  `json:"devs_id,omitempty" bson:"devs_id"`
-		Tasks     []Task    `json:"tasks,omitempty" bson:"tasks"`
+		Tasks     []*Task   `json:"tasks,omitempty" bson:"tasks"`
 		CreatedAt time.Time `json:"created_at,omitempty" bson:"created_at"`
 		UpdateAt  time.Time `json:"updated_at,omitempty" bson:"updated_at"`
 		Highlight bool      `json:"highlight,omitempty" bson:"highlight"`
+	}
+
+	ProjectInfo struct {
+		Name      string    `json:"name,omitempty" `
+		Desc      string    `json:"description,omitempty" `
+		ProjectID string    `json:"project_id,omitempty" `
+		CreaterID string    `json:"creater_id,omitempty"`
+		DevsID    []string  `json:"devs_id,omitempty" `
+		Tasks     int       `json:"tasks,omitempty" `
+		CreatedAt time.Time `json:"created_at,omitempty"`
+		UpdateAt  time.Time `json:"updated_at,omitempty" `
+		Highlight bool      `json:"highlight,omitempty" `
 	}
 
 	CreateProjectRequest struct {
@@ -37,9 +49,9 @@ type (
 		Desc string `json:"description,omitempty"`
 	}
 
-	ProjectInfo struct {
-		Name  string `json:"name,omitempty" validate:"required"`
-		Tasks []Task `json:"tasks,omitempty" validate:"required"`
+	UpdateProject struct {
+		Name  string  `json:"name,omitempty" validate:"required"`
+		Tasks []*Task `json:"tasks,omitempty" validate:"required"`
 	}
 
 	RemoveUserRequest struct {

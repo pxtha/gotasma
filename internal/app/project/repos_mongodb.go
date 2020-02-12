@@ -67,7 +67,7 @@ func (r *MongoDBRepository) Create(ctx context.Context, project *types.Project) 
 	return r.collection(s).Insert(project)
 
 }
-func (r *MongoDBRepository) Update(ctx context.Context, id string, req *types.ProjectInfo) error {
+func (r *MongoDBRepository) Update(ctx context.Context, id string, req *types.UpdateProject) error {
 	s := r.session.Clone()
 	defer s.Clone()
 

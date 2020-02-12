@@ -15,16 +15,25 @@ import (
 
 type (
 	repository interface {
+		//Check project exists
 		FindByName(ctx context.Context, name string, createrID string) (*types.Project, error)
+		//View project details (inclued tasks)
 		FindByProjectID(ctx context.Context, projectID string) (*types.Project, error)
+		//Search all project belong to user (Just projectinfo not include tasks but has number of tasks: int)
+		//If Pm searchs: return all project has creater_id == pmID
+		//If Devs search: return all project has devs_id == devid
 		FindAllByUserID(ctx context.Context, id string, role types.Role) ([]*types.Project, error)
 		Create(context.Context, *types.Project) error
 		Delete(ctx context.Context, id string) error
-		Update(ctx context.Context, id string, req *types.ProjectInfo) error
-		//Update action: addToSet or Pull
+		//Trusted data get from client
+		//ID must be uuid
+		//Update project API inclued (add, delete, update tasks)
+		Update(ctx context.Context, id string, req *types.UpdateProject) error
+		//UpdateDevsID action: addToSet or Pull
 		UpdateDevsID(ctx context.Context, devsID []string, projectID string, addToSet bool) error
 	}
 
+	//PolicyService check permission of client
 	PolicyService interface {
 		Validate(ctx context.Context, obj string, act string) error
 	}
@@ -50,7 +59,7 @@ func New(repo repository, policy PolicyService, updateUser UserService) *Service
 	}
 }
 
-func (s *Service) Update(ctx context.Context, id string, req *types.ProjectInfo) (*types.Project, error) {
+func (s *Service) Update(ctx context.Context, id string, req *types.UpdateProject) (*types.Project, error) {
 
 	//only PM can create Project
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
@@ -77,7 +86,8 @@ func (s *Service) Update(ctx context.Context, id string, req *types.ProjectInfo)
 	}
 
 	//validate each task
-	for _, task := range req.Tasks {
+	for i, task := range req.Tasks {
+
 		if err := validator.Validate(task); err != nil {
 			logrus.Errorf("Fail to update project due to invalid req, %w", err)
 			return nil, err
@@ -94,16 +104,16 @@ func (s *Service) Update(ctx context.Context, id string, req *types.ProjectInfo)
 				logrus.Errorf("Devs %v in tasks %v not found ", devInTask, task.TaskID)
 				return nil, fmt.Errorf("Dev: "+devInTask+" %w", status.Project().NotFoundDev)
 			}
-			//For sync data
-			//Update only changed task
-			for _, dbTask := range project.Tasks {
-				if dbTask.TaskID == task.TaskID {
-					if dbTask.UpdateAt == task.UpdateAt {
-						logrus.Info("here" + task.Label)
-						task = dbTask
-					}
-					break
+		}
+		//For sync data
+		//Update only changed task
+		for _, dbTask := range project.Tasks {
+			if dbTask.TaskID == task.TaskID {
+				if dbTask.UpdateAt == task.UpdateAt {
+					logrus.Info("here " + task.Label)
+					req.Tasks[i] = dbTask
 				}
+				break
 			}
 		}
 	}
@@ -178,6 +188,7 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 
 func (s *Service) FindByID(ctx context.Context, id string) (*types.Project, error) {
 
+	//TODO only devs of this project
 	project, err := s.repo.FindByProjectID(ctx, id)
 
 	if err != nil && !db.IsErrNotFound(err) {
@@ -191,7 +202,7 @@ func (s *Service) FindByID(ctx context.Context, id string) (*types.Project, erro
 	}
 
 	//Remove devIds from tasks if dev no longer in project
-	taskInfo := make([]types.Task, 0)
+	taskInfo := make([]*types.Task, 0)
 
 	for _, task := range project.Tasks {
 
@@ -208,7 +219,7 @@ func (s *Service) FindByID(ctx context.Context, id string) (*types.Project, erro
 			}
 		}
 
-		taskInfo = append(taskInfo, types.Task{
+		taskInfo = append(taskInfo, &types.Task{
 			Label:            task.Label,
 			AllChildren:      task.AllChildren,
 			Children:         task.Children,
@@ -242,22 +253,23 @@ func (s *Service) FindByID(ctx context.Context, id string) (*types.Project, erro
 	return info, nil
 }
 
-func (s *Service) FindAllProjects(ctx context.Context) ([]*types.Project, error) {
+func (s *Service) FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, error) {
 
 	user := auth.FromContext(ctx)
 	logrus.Infof("Devs id: %v", user.UserID)
 
 	projects, err := s.repo.FindAllByUserID(ctx, user.UserID, user.Role)
 
-	info := make([]*types.Project, 0)
+	info := make([]*types.ProjectInfo, 0)
 	for _, project := range projects {
-		info = append(info, &types.Project{
+		info = append(info, &types.ProjectInfo{
 			ProjectID: project.ProjectID,
 			Name:      project.Name,
 			CreaterID: project.CreaterID,
 			DevsID:    project.DevsID,
 			Highlight: project.Highlight,
 			UpdateAt:  project.UpdateAt,
+			Tasks:     len(project.Tasks),
 		})
 	}
 
