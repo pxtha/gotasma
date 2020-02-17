@@ -29,6 +29,7 @@ func LoadConfigFromEnv() *Config {
 
 // Dial dial to target server with Monotonic mode
 func Dial(conf *Config) (*mgo.Session, error) {
+	logrus.Info(conf.Addrs)
 	logrus.Infof("Dialing to target MongoDB at: %v, Database: %v", conf.Addrs, conf.Database)
 	ms, err := mgo.DialWithInfo(&mgo.DialInfo{
 		Addrs:    conf.Addrs,

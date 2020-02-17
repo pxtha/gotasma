@@ -209,7 +209,7 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 		return status.User().NotFoundUser
 	}
 	if user.Role == types.PM {
-		logrus.Infof("This is PM_ID, cannot delete PM account, how can you get a pm_ID?")
+		logrus.Warning("This is PM_ID, cannot delete PM account, how can you get a pm_ID?")
 		return status.Sercurity().InvalidAction
 	}
 

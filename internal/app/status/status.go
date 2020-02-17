@@ -66,7 +66,6 @@ var (
 func Init(conf string) {
 	once.Do(func() {
 		f, err := os.Open(conf)
-		logrus.Infof("Succesful open status file")
 		if err != nil {
 			logrus.Errorf("Fail to open status file, %v", err)
 			panic(err)

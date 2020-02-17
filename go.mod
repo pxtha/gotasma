@@ -18,5 +18,6 @@ require (
 	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
 	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
+	gopkg.in/olivere/elastic.v5 v5.0.84
 	gopkg.in/yaml.v2 v2.2.7
 )

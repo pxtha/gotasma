@@ -4,7 +4,9 @@ import (
 	"sync"
 
 	"github.com/globalsign/mgo"
+	"gopkg.in/olivere/elastic.v5"
 
+	"github.com/gotasma/internal/pkg/db/elasticsearch"
 	"github.com/gotasma/internal/pkg/db/mongodb"
 )
 
@@ -24,4 +26,13 @@ func dialDefaultMongoDB() (*mgo.Session, error) {
 	}
 	s := session.Clone()
 	return s, nil
+}
+
+func newElasticSearchClient() (*elastic.Client, error) {
+	esConf := elasticsearch.LoadConfigFromEnv()
+	es, err := elasticsearch.NewClient(esConf)
+	if err != nil {
+		return nil, err
+	}
+	return es, nil
 }

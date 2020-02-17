@@ -2,6 +2,31 @@ package types
 
 import "time"
 
+const (
+	Mapping = `
+	{
+		"settings":{
+			"number_of_shards":1,
+			"number_of_replicas":0
+		},
+		"mappings":{
+			"projects": {
+				"properties":{
+					"name"		 :{ "type":"keyword" },
+					"description":{ "type":"text"	 },
+					"project_id" :{ "type":"keyword" },
+					"creater_id" :{ "type":"keyword" },
+					"devs_id"	 :{ "type":"keyword" },
+					"tasks"		 :{ "type":"nested"	 },
+					"created_at" :{ "type":"date" 	 },
+					"updated_at" :{ "type":"date"	 },
+					"highlight"	 :{ "type":"boolean"}
+				}
+			}
+		}
+	}`
+)
+
 type (
 	Task struct {
 		Label            string    `json:"label,omitempty" bson:"label" validate:"required"`
@@ -22,7 +47,7 @@ type (
 
 	Project struct {
 		Name      string    `json:"name,omitempty" bson:"name"`
-		Desc      string    `json:"description,omitempty" bson:"description"`
+		Desc      string    `json:"desc,omitempty" bson:"desc"`
 		ProjectID string    `json:"project_id,omitempty" bson:"project_id"`
 		CreaterID string    `json:"creater_id,omitempty" bson:"creater_id"`
 		DevsID    []string  `json:"devs_id,omitempty" bson:"devs_id"`
@@ -46,7 +71,7 @@ type (
 
 	CreateProjectRequest struct {
 		Name string `json:"name,omitempty"  validate:"required,gt=3"`
-		Desc string `json:"description,omitempty"`
+		Desc string `json:"desc,omitempty"`
 	}
 
 	UpdateProject struct {

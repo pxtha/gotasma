@@ -10,6 +10,30 @@ services:
       - /opt/data/mongo_home:/data/db
     restart: always
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.4.0
+    hostname: elasticsearch
+    command: elasticsearch -Enetwork.host=_local_,_site_ -Enetwork.publish_host=_local_
+    environment:
+      - cluster.name=escontainers
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - http.host=0.0.0.0
+      - transport.host=127.0.0.1
+      - network.publish_host=_local_
+      nproc: 65536
+      nofile:
+        soft: 65536
+        hard: 65536
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - 9200:9200
+    volumes:
+      - ../data:/data/elasticsearch/
+
+
   backend:
     image: realize:${REALIZE_VERSION}
     hostname: backend
@@ -28,12 +52,15 @@ services:
       - HTTP_HOST=${HTTP_HOST}
       - HTTP_ALLOWED_ORIGINS=${HTTP_ALLOWED_ORIGINS}
       - HTTP_PORT=${HTTP_PORT}
+
       # DB
       - MONGODB_ADDRS=${MONGODB_ADDRS}
       - MONGODB_DATABASE=${MONGODB_DATABASE}
       - MONGODB_USERNAME=${MONGODB_USERNAME}
       - MONGODB_PASSWORD=${MONGODB_PASSWORD}
       - MONGODB_TIMEOUT=${MONGODB_TIMEOUT}
+
+
     volumes:
       - ../../.realize.yaml:/home/praslar/Code/Workspace/src/github.com/gotasma/.realize.yaml
       - ../../main.go:/home/praslar/Code/Workspace/src/github.com/gotasma/main.go
@@ -46,4 +73,7 @@ services:
     entrypoint: [ "sh", "-c", "/scripts/wait-for.sh mongodb:27017 --timeout=5 -- realize start" ]
     depends_on:
       - mongodb
+      - elasticsearch
+    links:
+      - elasticsearch
     restart: always
