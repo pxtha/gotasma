@@ -11,27 +11,21 @@ services:
     restart: always
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.4.0
-    hostname: elasticsearch
-    command: elasticsearch -Enetwork.host=_local_,_site_ -Enetwork.publish_host=_local_
-    environment:
-      - cluster.name=escontainers
-      - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
-      - http.host=0.0.0.0
-      - transport.host=127.0.0.1
-      - network.publish_host=_local_
-      nproc: 65536
-      nofile:
-        soft: 65536
-        hard: 65536
-      memlock:
-        soft: -1
-        hard: -1
+    image: elasticsearch:7.6.0
     ports:
       - 9200:9200
+      - 9300:9300
+    environment:
+      - discovery.type=single-node
     volumes:
-      - ../data:/data/elasticsearch/
+      - ../data:/usr/share/elasticsearch/data
+
+  kibana:
+    image: kibana:7.6.0
+    ports:
+      - 5601:5601
+    environment:
+      - discovery.type=single-node  
 
 
   backend:
@@ -56,8 +50,6 @@ services:
       # DB
       - MONGODB_ADDRS=${MONGODB_ADDRS}
       - MONGODB_DATABASE=${MONGODB_DATABASE}
-      - MONGODB_USERNAME=${MONGODB_USERNAME}
-      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
       - MONGODB_TIMEOUT=${MONGODB_TIMEOUT}
 
 
@@ -70,10 +62,9 @@ services:
       - ../../configs:/home/praslar/Code/Workspace/src/github.com/gotasma/configs
       - ../scripts:/scripts
     working_dir: /home/praslar/Code/Workspace/src/github.com/gotasma
-    entrypoint: [ "sh", "-c", "/scripts/wait-for.sh mongodb:27017 --timeout=5 -- realize start" ]
+    entrypoint: [ "sh", "-c", "/scripts/wait-for.sh mongodb:27017 --timeout=20 -- realize start" ]
     depends_on:
       - mongodb
       - elasticsearch
-    links:
-      - elasticsearch
+      - kibana
     restart: always

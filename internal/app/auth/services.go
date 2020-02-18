@@ -3,11 +3,11 @@ package auth
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/gotasma/internal/app/status"
 	"github.com/gotasma/internal/app/types"
 	"github.com/gotasma/internal/pkg/jwt"
+
+	"github.com/sirupsen/logrus"
 )
 
 type (

@@ -18,7 +18,7 @@ func (h *Handler) Routes() []router.Route {
 		{
 			Path:        "/api/v1/projects",
 			Method:      http.MethodGet,
-			Handler:     h.FindAllProjects,
+			Handler:     h.FindAll,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
 		{
@@ -33,17 +33,24 @@ func (h *Handler) Routes() []router.Route {
 			Handler:     h.Delete,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
-		//TODO update project tasks
+		//DONE Save project PUT
 		{
 			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}",
 			Method:      http.MethodPut,
+			Handler:     h.Save,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+		},
+		//DONE Update project info POST
+		{
+			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}",
+			Method:      http.MethodPost,
 			Handler:     h.Update,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
+		//Find all devs of this project
 		{
-			Path:   "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/devs",
-			Method: http.MethodGet,
-			//Find all devs of this project
+			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/devs",
+			Method:      http.MethodGet,
 			Handler:     h.FindAllDevs,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},

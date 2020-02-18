@@ -35,7 +35,7 @@ func NewRouter() (http.Handler, error) {
 	}
 	holidayHandler := newHolidayHandler(holidaySrv)
 	//===============Project====================
-	projectSrv, err := newProjectService(policySrv, userSrv)
+	projectSrv, err := newProjectService(policySrv, userSrv, holidaySrv)
 	if err != nil {
 		return nil, err
 	}

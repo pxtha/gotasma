@@ -17,7 +17,8 @@ import (
 type (
 	service interface {
 		Create(ctx context.Context, req *types.CreateProjectRequest) (*types.Project, error)
-		Update(ctx context.Context, id string, req *types.UpdateProject) (*types.Project, error)
+		Save(ctx context.Context, id string, req *types.SaveProject) (*types.Project, error)
+		Update(ctx context.Context, id string, req *types.UpdateProject) (*types.ProjectHistory, error)
 		Delete(ctx context.Context, id string) error
 
 		FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, error)
@@ -38,6 +39,39 @@ func NewHandler(srv service) *Handler {
 	}
 }
 
+func (h *Handler) Save(w http.ResponseWriter, r *http.Request) {
+
+	id := mux.Vars(r)["project_id"]
+
+	if id == "" {
+		logrus.Error("Fail to Save Project due to empty project ID ")
+		respond.Error(w, errors.New("invalid id"), http.StatusBadRequest)
+		return
+	}
+
+	var req types.SaveProject
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logrus.Errorf("Fail to parse JSON to Save Project Request struct, %v", err)
+		respond.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	defer r.Body.Close()
+
+	//Update project tasks
+	_, err := h.srv.Save(r.Context(), id, &req)
+
+	if err != nil {
+		logrus.Errorf("Fail to Save Project due to, %v", err)
+		respond.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	respond.JSON(w, http.StatusOK, types.BaseResponse{
+		Data: req,
+	})
+}
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["project_id"]
@@ -58,16 +92,17 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	_, err := h.srv.Update(r.Context(), id, &req)
+	//Update project tasks
+	project, err := h.srv.Update(r.Context(), id, &req)
 
 	if err != nil {
-		logrus.Errorf("Fail to Update Project due to, %v", err)
+		logrus.Errorf("Fail to Save Project due to, %v", err)
 		respond.Error(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	respond.JSON(w, http.StatusOK, types.BaseResponse{
-		Data: req,
+		Data: project,
 	})
 }
 
@@ -110,7 +145,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *Handler) FindAllProjects(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) FindAll(w http.ResponseWriter, r *http.Request) {
 
 	projects, err := h.srv.FindAllProjects(r.Context())
 
@@ -144,20 +179,6 @@ func (h *Handler) FindByID(w http.ResponseWriter, r *http.Request) {
 
 	respond.JSON(w, http.StatusOK, types.BaseResponse{
 		Data: project,
-	})
-}
-func (h *Handler) GetProject(w http.ResponseWriter, r *http.Request) {
-
-	projects, err := h.srv.FindAllProjects(r.Context())
-
-	if err != nil {
-		logrus.Errorf("Fail to get all project due to, %v", err)
-		respond.Error(w, err, http.StatusBadRequest)
-		return
-	}
-
-	respond.JSON(w, http.StatusOK, types.BaseResponse{
-		Data: projects,
 	})
 }
 

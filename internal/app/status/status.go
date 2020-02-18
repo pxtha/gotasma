@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/gotasma/internal/pkg/status"
+
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )

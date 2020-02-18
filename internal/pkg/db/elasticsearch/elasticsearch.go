@@ -30,7 +30,7 @@ func NewClient(conf *Config) (*elastic.Client, error) {
 	esversion, err := client.ElasticsearchVersion(conf.URL[0])
 	if err != nil {
 		// Handle error
-		panic(err)
+		logrus.Warning("Fail to connect elastic: err: %v ", err)
 	}
 	logrus.Infof("successfully connect to ES at %v and Elasticsearch version %s\n", conf.URL, esversion)
 	return client, nil

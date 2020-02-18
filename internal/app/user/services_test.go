@@ -7,6 +7,7 @@ import (
 
 	"github.com/globalsign/mgo"
 	"github.com/golang/mock/gomock"
+
 	"github.com/gotasma/internal/app/auth"
 	"github.com/gotasma/internal/app/status"
 	"github.com/gotasma/internal/app/types"

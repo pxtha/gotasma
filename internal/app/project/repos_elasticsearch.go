@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/gotasma/internal/app/types"
+
 	"github.com/sirupsen/logrus"
 	"gopkg.in/olivere/elastic.v5"
 )
@@ -21,7 +22,7 @@ func NewElasticSearchRepository(client *elastic.Client) *ElasticSearchRepository
 	}
 }
 
-func (es *ElasticSearchRepository) IndexNewHistory(ctx context.Context, project *types.Project) error {
+func (es *ElasticSearchRepository) IndexNewHistory(ctx context.Context, project *types.ProjectHistory) error {
 
 	exists, err := es.client.IndexExists("history").Do(ctx)
 	if err != nil {
@@ -32,7 +33,7 @@ func (es *ElasticSearchRepository) IndexNewHistory(ctx context.Context, project 
 		// Create a new index.
 		createIndex, err := es.client.CreateIndex("history").BodyJson(types.Mapping).Do(ctx)
 		if err != nil {
-			logrus.Error(err)
+			logrus.Errorf("Fail to create index: err %v", err)
 			return err
 		}
 		if !createIndex.Acknowledged {
@@ -42,7 +43,7 @@ func (es *ElasticSearchRepository) IndexNewHistory(ctx context.Context, project 
 
 	put1, err := es.client.Index().
 		Index("history").
-		Type("projects").
+		Type("_doc").
 		BodyJson(project).
 		Do(ctx)
 

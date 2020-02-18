@@ -11,6 +11,7 @@ import (
 	"github.com/gotasma/internal/pkg/db"
 	"github.com/gotasma/internal/pkg/uuid"
 	"github.com/gotasma/internal/pkg/validator"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,13 +30,15 @@ type (
 		//Trusted data get from client
 		//ID must be uuid
 		//Update project API inclued (add, delete, update tasks)
+		Save(ctx context.Context, id string, req *types.SaveProject) error
 		Update(ctx context.Context, id string, req *types.UpdateProject) error
 		//UpdateDevsID action: addToSet or Pull
 		UpdateDevsID(ctx context.Context, devsID []string, projectID string, addToSet bool) error
+		UpdateHolidaysID(ctx context.Context, devsID []string, projectID string, addToSet bool) error
 	}
 
 	elasticRepository interface {
-		IndexNewHistory(ctx context.Context, project *types.Project) error
+		IndexNewHistory(ctx context.Context, project *types.ProjectHistory) error
 	}
 
 	//PolicyService check permission of client
@@ -49,24 +52,30 @@ type (
 		GetDevsInfo(ctx context.Context, userIDs []string) ([]*types.UserInfo, error)
 	}
 
+	HolidayService interface {
+		FindByID(ctx context.Context, id string) (string, error)
+	}
+
 	Service struct {
 		mongo   mongoRepository
 		policy  PolicyService
 		user    UserService
+		holiday HolidayService
 		elastic elasticRepository
 	}
 )
 
-func New(mongo mongoRepository, policy PolicyService, updateUser UserService, elastic elasticRepository) *Service {
+func New(mongo mongoRepository, policy PolicyService, updateUser UserService, elastic elasticRepository, holiday HolidayService) *Service {
 	return &Service{
 		mongo:   mongo,
 		policy:  policy,
 		user:    updateUser,
 		elastic: elastic,
+		holiday: holiday,
 	}
 }
 
-func (s *Service) Update(ctx context.Context, id string, req *types.UpdateProject) (*types.Project, error) {
+func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (*types.Project, error) {
 
 	//only PM can create Project
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
@@ -129,19 +138,91 @@ func (s *Service) Update(ctx context.Context, id string, req *types.UpdateProjec
 	//VueJS will do all the validation for data comes in
 	//So that user can edit tasks as long as they want, only save tasks when user use update task API
 
-	history := &types.Project{
+	history := &types.ProjectHistory{
 		//news info
-		Name:     req.Name,
 		Tasks:    req.Tasks,
 		UpdateAt: time.Now(),
 
 		//old
+		ProjectID:  project.ProjectID,
+		Desc:       project.Desc,
+		DevsID:     project.DevsID,
+		CreatedAt:  project.CreatedAt,
+		CreaterID:  project.ProjectID,
+		Highlight:  project.Highlight,
+		HolidaysID: project.HolidaysID,
+		Name:       project.Name,
+		Action:     "Save project",
+	}
+
+	if err = s.mongo.Save(ctx, id, req); err != nil {
+		logrus.Errorf("failed to update project: %v", err)
+		return nil, fmt.Errorf("failed to update project, %w", err)
+	}
+
+	//TODO calculate workload
+	err = s.elastic.IndexNewHistory(ctx, history)
+
+	if err != nil {
+		//TODO retry if fail
+		//OR remove Updated info
+		return nil, err
+	}
+
+	return project, nil
+}
+
+//Note: update data must inclue all the field,
+func (s *Service) Update(ctx context.Context, id string, req *types.UpdateProject) (*types.ProjectHistory, error) {
+
+	//only PM can update Project
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return nil, err
+	}
+	//validate incoming data
+	if err := validator.Validate(req); err != nil {
+		logrus.Errorf("Fail to update project due to invalid req, %w", err)
+		return nil, err
+	}
+
+	project, err := s.mongo.FindByProjectID(ctx, id)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Errorf("failed to check existing project by id: %v", err)
+		return nil, fmt.Errorf("failed to check existing project by id: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Errorf("Project doesn't exist")
+		return nil, status.Project().NotFoundProject
+	}
+
+	for _, holiday := range req.HolidaysID {
+		if holiday == "" {
+			return nil, status.Holiday().NotFoundHoliday
+		}
+		existingHoliday, err := s.holiday.FindByID(ctx, holiday)
+		if err != nil {
+			logrus.Errorf("Fail in update project with holiday ids: %v, err:%v", existingHoliday, err)
+			return nil, status.Holiday().NotFoundHoliday
+		}
+	}
+
+	history := &types.ProjectHistory{
+		//news info
+		UpdateAt:   time.Now(),
+		HolidaysID: req.HolidaysID,
+		Name:       req.Name,
+		Desc:       req.Desc,
+		Highlight:  req.Highlight,
+
+		//old
+		Tasks:     project.Tasks,
 		ProjectID: project.ProjectID,
-		Desc:      project.Desc,
 		DevsID:    project.DevsID,
 		CreatedAt: project.CreatedAt,
 		CreaterID: project.ProjectID,
-		Highlight: project.Highlight,
+		Action:    "Update project",
 	}
 
 	if err = s.mongo.Update(ctx, id, req); err != nil {
@@ -149,15 +230,16 @@ func (s *Service) Update(ctx context.Context, id string, req *types.UpdateProjec
 		return nil, fmt.Errorf("failed to update project, %w", err)
 	}
 
-	//TODO add new history elasticsearch
 	//TODO calculate workload
 	err = s.elastic.IndexNewHistory(ctx, history)
 
 	if err != nil {
+		//TODO retry if fail
+		//OR remove Updated info
 		return nil, err
 	}
 
-	return project, nil
+	return history, nil
 }
 
 func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (*types.Project, error) {
@@ -186,12 +268,24 @@ func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (
 		return nil, status.Project().DuplicateProject
 	}
 
+	for _, holiday := range req.HolidaysID {
+		if holiday == "" {
+			return nil, status.Holiday().NotFoundHoliday
+		}
+		existingHoliday, err := s.holiday.FindByID(ctx, holiday)
+		if err != nil {
+			logrus.Errorf("Fail in create project with holiday ids: %v, err:%v", existingHoliday, err)
+			return nil, status.Holiday().NotFoundHoliday
+		}
+	}
+
 	project := &types.Project{
-		CreaterID: pm.UserID,
-		Highlight: true,
-		Name:      req.Name,
-		ProjectID: uuid.New(),
-		Desc:      req.Desc,
+		CreaterID:  pm.UserID,
+		Highlight:  true,
+		Name:       req.Name,
+		ProjectID:  uuid.New(),
+		Desc:       req.Desc,
+		HolidaysID: req.HolidaysID,
 	}
 
 	if err = s.mongo.Create(ctx, project); err != nil {
@@ -199,8 +293,25 @@ func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (
 		return nil, fmt.Errorf("failed to create project, %w", err)
 	}
 
-	err = s.elastic.IndexNewHistory(ctx, project)
+	history := &types.ProjectHistory{
+		//news info
+		UpdateAt: time.Now(),
+		//old
+		Tasks:      project.Tasks,
+		ProjectID:  project.ProjectID,
+		Desc:       project.Desc,
+		DevsID:     project.DevsID,
+		CreatedAt:  project.CreatedAt,
+		CreaterID:  project.ProjectID,
+		Highlight:  project.Highlight,
+		HolidaysID: project.HolidaysID,
+		Name:       project.Name,
+		Action:     "Create project",
+	}
+	err = s.elastic.IndexNewHistory(ctx, history)
 	if err != nil {
+		//TODO retry if fail
+		//OR remove Created project
 		return nil, err
 	}
 	return project, nil
@@ -270,15 +381,16 @@ func (s *Service) FindByID(ctx context.Context, id string) (*types.Project, erro
 
 	var info *types.Project
 	info = &types.Project{
-		Name:      project.Name,
-		CreatedAt: project.CreatedAt,
-		CreaterID: project.CreaterID,
-		DevsID:    project.DevsID,
-		Highlight: project.Highlight,
-		ProjectID: project.ProjectID,
-		Tasks:     taskInfo,
-		UpdateAt:  project.UpdateAt,
-		Desc:      project.Desc,
+		Name:       project.Name,
+		CreatedAt:  project.CreatedAt,
+		CreaterID:  project.CreaterID,
+		DevsID:     project.DevsID,
+		Highlight:  project.Highlight,
+		ProjectID:  project.ProjectID,
+		Tasks:      taskInfo,
+		UpdateAt:   project.UpdateAt,
+		Desc:       project.Desc,
+		HolidaysID: project.HolidaysID,
 	}
 
 	return info, nil
@@ -293,14 +405,29 @@ func (s *Service) FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, er
 
 	info := make([]*types.ProjectInfo, 0)
 	for _, project := range projects {
+
+		for _, holiday := range project.HolidaysID {
+			holidayNotFound, err := s.holiday.FindByID(ctx, holiday)
+			if err != nil {
+				logrus.Infof("Removing Holiday IDs from project INFO %v", holidayNotFound)
+				if err := s.mongo.UpdateHolidaysID(ctx, []string{holidayNotFound}, project.ProjectID, false); err != nil {
+					logrus.Errorf("Failed to update Holiday ID in project info %v", err)
+					return nil, err
+				}
+			}
+		}
+
 		info = append(info, &types.ProjectInfo{
-			ProjectID: project.ProjectID,
-			Name:      project.Name,
-			CreaterID: project.CreaterID,
-			DevsID:    project.DevsID,
-			Highlight: project.Highlight,
-			UpdateAt:  project.UpdateAt,
-			Tasks:     len(project.Tasks),
+			ProjectID:  project.ProjectID,
+			Name:       project.Name,
+			CreaterID:  project.CreaterID,
+			DevsID:     project.DevsID,
+			Highlight:  project.Highlight,
+			UpdateAt:   project.UpdateAt,
+			Tasks:      len(project.Tasks),
+			Desc:       project.Desc,
+			HolidaysID: project.HolidaysID,
+			CreatedAt:  project.CreatedAt,
 		})
 	}
 

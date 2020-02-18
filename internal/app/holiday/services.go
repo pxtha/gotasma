@@ -11,6 +11,7 @@ import (
 	"github.com/gotasma/internal/pkg/db"
 	"github.com/gotasma/internal/pkg/uuid"
 	"github.com/gotasma/internal/pkg/validator"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,9 +23,10 @@ type (
 	Repository interface {
 		Create(ctx context.Context, holiday *types.Holiday) error
 		Update(ctx context.Context, holiday *types.HolidayInfo, id string) error
+		Delete(ctx context.Context, id string) error
+
 		FindByTitle(ctx context.Context, title string, createrID string) (*types.Holiday, error)
 		FindByID(ctx context.Context, id string) (*types.Holiday, error)
-		Delete(ctx context.Context, id string) error
 		FindAll(ctx context.Context, createrID string) ([]*types.Holiday, error)
 	}
 	PolicyServices interface {
@@ -129,6 +131,7 @@ func (s *Service) Update(ctx context.Context, id string, req *types.HolidayReque
 	return info, nil
 }
 
+//TODO: remove holidays_id in project
 func (s *Service) Delete(ctx context.Context, id string) error {
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
 		return err
@@ -169,4 +172,21 @@ func (s *Service) FindAll(ctx context.Context) ([]*types.Holiday, error) {
 		})
 	}
 	return info, err
+}
+
+//TODO check holiday
+func (s *Service) FindByID(ctx context.Context, id string) (string, error) {
+
+	_, err := s.repo.FindByID(ctx, id)
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Error("Failed to check existing holiday by id %w", err)
+		return id, fmt.Errorf("Failed to check existing holiday by id: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Error("Holiday all ready exist")
+		return id, status.Holiday().NotFoundHoliday
+	}
+
+	return "", nil
 }

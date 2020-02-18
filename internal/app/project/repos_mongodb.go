@@ -6,6 +6,7 @@ import (
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+
 	"github.com/gotasma/internal/app/types"
 )
 
@@ -67,15 +68,30 @@ func (r *MongoDBRepository) Create(ctx context.Context, project *types.Project) 
 	return r.collection(s).Insert(project)
 
 }
-func (r *MongoDBRepository) Update(ctx context.Context, id string, req *types.UpdateProject) error {
+func (r *MongoDBRepository) Save(ctx context.Context, id string, req *types.SaveProject) error {
 	s := r.session.Clone()
 	defer s.Clone()
 
 	return r.collection(s).Update(bson.M{"project_id": id}, bson.M{
 		"$set": bson.M{
 			"updated_at": time.Now(),
-			"name":       req.Name,
 			"tasks":      req.Tasks,
+		},
+	},
+	)
+
+}
+func (r *MongoDBRepository) Update(ctx context.Context, id string, req *types.UpdateProject) error {
+	s := r.session.Clone()
+	defer s.Clone()
+
+	return r.collection(s).Update(bson.M{"project_id": id}, bson.M{
+		"$set": bson.M{
+			"updated_at":  time.Now(),
+			"desc":        req.Desc,
+			"highlight":   req.Highlight,
+			"holidays_id": req.HolidaysID,
+			"name":        req.Name,
 		},
 	},
 	)
@@ -107,6 +123,33 @@ func (r *MongoDBRepository) UpdateDevsID(ctx context.Context, devsID []string, p
 		action = "$pull"
 		data = bson.M{
 			"devs_id": devsID[0],
+		}
+	}
+
+	return r.collection(s).Update(bson.M{"project_id": projectID}, bson.M{
+		"$set": bson.M{
+			"updated_at": time.Now(),
+		},
+		action: data,
+	},
+	)
+}
+func (r *MongoDBRepository) UpdateHolidaysID(ctx context.Context, holidaysID []string, projectID string, addToSet bool) error {
+
+	s := r.session.Clone()
+	defer s.Clone()
+	//add data to array if not exist
+	action := "$addToSet"
+	data := bson.M{
+		"holidays_id": bson.M{
+			"$each": holidaysID,
+		},
+	}
+	//pull data out of array
+	if !addToSet {
+		action = "$pull"
+		data = bson.M{
+			"holidays_id": holidaysID[0],
 		}
 	}
 

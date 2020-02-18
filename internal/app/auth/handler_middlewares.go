@@ -8,6 +8,7 @@ import (
 	"github.com/gotasma/internal/app/types"
 	"github.com/gotasma/internal/pkg/http/respond"
 	"github.com/gotasma/internal/pkg/jwt"
+
 	"github.com/sirupsen/logrus"
 )
 

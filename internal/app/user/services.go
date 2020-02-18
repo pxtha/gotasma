@@ -137,15 +137,6 @@ func (s *Service) CreateDev(ctx context.Context, req *types.RegisterRequest) (*t
 	return user.Strip(), nil
 }
 
-func (s *Service) GeneratePassword(pass string) (string, error) {
-	rs, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
-	if err != nil {
-		logrus.Errorf("failed to check hash password, %v", err)
-		return "", fmt.Errorf("failed to generate password: %w", err)
-	}
-	return string(rs), nil
-}
-
 func (s *Service) Auth(ctx context.Context, email, password string) (*types.User, error) {
 	user, err := s.repo.FindByEmail(ctx, email)
 	if err != nil && !db.IsErrNotFound(err) {
@@ -193,6 +184,7 @@ func (s *Service) FindAllDev(ctx context.Context) ([]*types.UserInfo, error) {
 	return info, nil
 }
 
+//TODO: remove Devs_id in project
 func (s *Service) Delete(ctx context.Context, id string) error {
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
 		return err
@@ -262,4 +254,13 @@ func (s *Service) GetDevsInfo(ctx context.Context, userIDs []string) ([]*types.U
 		})
 	}
 	return info, nil
+}
+
+func (s *Service) GeneratePassword(pass string) (string, error) {
+	rs, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
+	if err != nil {
+		logrus.Errorf("failed to check hash password, %v", err)
+		return "", fmt.Errorf("failed to generate password: %w", err)
+	}
+	return string(rs), nil
 }
