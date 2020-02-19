@@ -47,13 +47,6 @@ func (h *Handler) Routes() []router.Route {
 			Handler:     h.Update,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
-		//Find all devs of this project
-		{
-			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/devs",
-			Method:      http.MethodGet,
-			Handler:     h.FindAllDevs,
-			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
-		},
 		{
 			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/devs",
 			Method:      http.MethodPost,

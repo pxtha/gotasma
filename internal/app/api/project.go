@@ -5,7 +5,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func newProjectService(policy project.PolicyService, updateUser project.UserService, holiday project.HolidayService) (*project.Service, error) {
+func newProjectService(policy project.PolicyService, holiday project.HolidayService) (*project.Service, error) {
 	s, err := dialDefaultMongoDB()
 	if err != nil {
 		logrus.Errorf("Fail to dial defautl mongodb API util")
@@ -22,7 +22,7 @@ func newProjectService(policy project.PolicyService, updateUser project.UserServ
 
 	elastic := project.NewElasticSearchRepository(es)
 
-	return project.New(repo, policy, updateUser, elastic, holiday), nil
+	return project.New(repo, policy, elastic, holiday), nil
 }
 
 func newProjectHandler(srv *project.Service) *project.Handler {

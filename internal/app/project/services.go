@@ -25,6 +25,9 @@ type (
 		//If Pm searchs: return all project has creater_id == pmID
 		//If Devs search: return all project has devs_id == devid
 		FindAllByUserID(ctx context.Context, id string, role types.Role) ([]*types.Project, error)
+		//Find all project has holiday id
+		FindAllByHolidaysID(ctx context.Context, holidayID string) ([]*types.Project, error)
+		//Find all tasks has user id
 		Create(context.Context, *types.Project) error
 		Delete(ctx context.Context, id string) error
 		//Trusted data get from client
@@ -34,7 +37,8 @@ type (
 		Update(ctx context.Context, id string, req *types.UpdateProject) error
 		//UpdateDevsID action: addToSet or Pull
 		UpdateDevsID(ctx context.Context, devsID []string, projectID string, addToSet bool) error
-		UpdateHolidaysID(ctx context.Context, devsID []string, projectID string, addToSet bool) error
+		UpdateHolidaysID(ctx context.Context, holiday string, projectID string) error
+		//FindholidayByID
 	}
 
 	elasticRepository interface {
@@ -46,12 +50,6 @@ type (
 		Validate(ctx context.Context, obj string, act string) error
 	}
 
-	UserService interface {
-		//User can be DEV or PM
-		CheckUsersExist(ctx context.Context, userID string) (string, error)
-		GetDevsInfo(ctx context.Context, userIDs []string) ([]*types.UserInfo, error)
-	}
-
 	HolidayService interface {
 		FindByID(ctx context.Context, id string) (string, error)
 	}
@@ -59,23 +57,22 @@ type (
 	Service struct {
 		mongo   mongoRepository
 		policy  PolicyService
-		user    UserService
 		holiday HolidayService
 		elastic elasticRepository
 	}
 )
 
-func New(mongo mongoRepository, policy PolicyService, updateUser UserService, elastic elasticRepository, holiday HolidayService) *Service {
+func New(mongo mongoRepository, policy PolicyService, elastic elasticRepository, holiday HolidayService) *Service {
 	return &Service{
 		mongo:   mongo,
 		policy:  policy,
-		user:    updateUser,
 		elastic: elastic,
 		holiday: holiday,
 	}
 }
 
-func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (*types.Project, error) {
+//Save all tasks, only update tasks has new update time
+func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (*types.ProjectHistory, error) {
 
 	//only PM can create Project
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
@@ -169,7 +166,7 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 		return nil, err
 	}
 
-	return project, nil
+	return history, nil
 }
 
 //Note: update data must inclue all the field,
@@ -342,58 +339,7 @@ func (s *Service) FindByID(ctx context.Context, id string) (*types.Project, erro
 		logrus.Errorf("Project doesn't exist")
 		return nil, status.Project().NotFoundProject
 	}
-
-	//Remove devIds from tasks if dev no longer in project
-	taskInfo := make([]*types.Task, 0)
-
-	for _, task := range project.Tasks {
-
-		for i, inTask := range task.DevsID {
-			check := false
-			for _, inProject := range project.DevsID {
-				if inTask == inProject {
-					check = true
-				}
-			}
-			if check == false {
-				task.DevsID[i] = task.DevsID[len(task.DevsID)-1]
-				task.DevsID = task.DevsID[:len(task.DevsID)-1]
-			}
-		}
-
-		taskInfo = append(taskInfo, &types.Task{
-			Label:            task.Label,
-			AllChildren:      task.AllChildren,
-			Children:         task.Children,
-			DevsID:           task.DevsID,
-			Duration:         task.Duration,
-			Effort:           task.Effort,
-			End:              task.End,
-			EstimateDuration: task.EstimateDuration,
-			Parent:           task.Parent,
-			Parents:          task.Parents,
-			Start:            task.Start,
-			TaskID:           task.TaskID,
-			Type:             task.Type,
-			UpdateAt:         task.UpdateAt,
-		})
-	}
-
-	var info *types.Project
-	info = &types.Project{
-		Name:       project.Name,
-		CreatedAt:  project.CreatedAt,
-		CreaterID:  project.CreaterID,
-		DevsID:     project.DevsID,
-		Highlight:  project.Highlight,
-		ProjectID:  project.ProjectID,
-		Tasks:      taskInfo,
-		UpdateAt:   project.UpdateAt,
-		Desc:       project.Desc,
-		HolidaysID: project.HolidaysID,
-	}
-
-	return info, nil
+	return project, nil
 }
 
 func (s *Service) FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, error) {
@@ -405,18 +351,6 @@ func (s *Service) FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, er
 
 	info := make([]*types.ProjectInfo, 0)
 	for _, project := range projects {
-
-		for _, holiday := range project.HolidaysID {
-			holidayNotFound, err := s.holiday.FindByID(ctx, holiday)
-			if err != nil {
-				logrus.Infof("Removing Holiday IDs from project INFO %v", holidayNotFound)
-				if err := s.mongo.UpdateHolidaysID(ctx, []string{holidayNotFound}, project.ProjectID, false); err != nil {
-					logrus.Errorf("Failed to update Holiday ID in project info %v", err)
-					return nil, err
-				}
-			}
-		}
-
 		info = append(info, &types.ProjectInfo{
 			ProjectID:  project.ProjectID,
 			Name:       project.Name,
@@ -432,6 +366,118 @@ func (s *Service) FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, er
 	}
 
 	return info, err
+}
+
+//Removing holidays_id not existing anymore (holiday deleted)
+//TODO: history
+func (s *Service) RemoveHoliday(ctx context.Context, holidayID string) error {
+	//Find all project has deleted holiday ids
+	projects, err := s.mongo.FindAllByHolidaysID(ctx, holidayID)
+	logrus.Info(projects)
+	for _, project := range projects {
+		if err := s.mongo.UpdateHolidaysID(ctx, holidayID, project.ProjectID); err != nil {
+			logrus.Errorf("Failed to update Holiday ID in project info %v", err)
+			return err
+		}
+
+		for i, holiday := range project.HolidaysID {
+			if holiday == holidayID {
+				project.HolidaysID[i] = project.HolidaysID[len(project.HolidaysID)-1]
+				project.HolidaysID = project.HolidaysID[:len(project.HolidaysID)-1]
+			}
+		}
+
+		history := &types.ProjectHistory{
+			//news info
+			UpdateAt:   time.Now(),
+			HolidaysID: project.HolidaysID,
+
+			//old
+			Name:      project.Name,
+			Desc:      project.Desc,
+			Highlight: project.Highlight,
+			Tasks:     project.Tasks,
+			ProjectID: project.ProjectID,
+			DevsID:    project.DevsID,
+			CreatedAt: project.CreatedAt,
+			CreaterID: project.ProjectID,
+			Action:    "Remove holiday",
+		}
+
+		return s.elastic.IndexNewHistory(ctx, history)
+	}
+	return err
+}
+
+//Removing devs_id not existing anymore (dev deleted)
+//TODO: history
+func (s *Service) RemoveDevs(ctx context.Context, userID string) error {
+	projects, err := s.mongo.FindAllByUserID(ctx, userID, types.DEV)
+	for _, project := range projects {
+		//Remove dev from project
+		if err := s.mongo.UpdateDevsID(ctx, []string{userID}, project.ProjectID, false); err != nil {
+			logrus.Errorf("Failed to update devs ID in project info %v", err)
+			return err
+		}
+		//Update all project's tasks
+		taskInfo := make([]*types.Task, 0)
+		for _, task := range project.Tasks {
+
+			//remove devid from tasks
+			for i, dev := range task.DevsID {
+				if dev == userID {
+					task.DevsID[i] = task.DevsID[len(task.DevsID)-1]
+					task.DevsID = task.DevsID[:len(task.DevsID)-1]
+				}
+			}
+			taskInfo = append(taskInfo, &types.Task{
+				Label:            task.Label,
+				AllChildren:      task.AllChildren,
+				Children:         task.Children,
+				DevsID:           task.DevsID,
+				Duration:         task.Duration,
+				Effort:           task.Effort,
+				End:              task.End,
+				EstimateDuration: task.EstimateDuration,
+				Parent:           task.Parent,
+				Parents:          task.Parents,
+				Start:            task.Start,
+				TaskID:           task.TaskID,
+				Type:             task.Type,
+				UpdateAt:         task.UpdateAt,
+			})
+		}
+
+		newTasks := &types.SaveProject{
+			Tasks: taskInfo,
+		}
+
+		if err = s.mongo.Save(ctx, project.ProjectID, newTasks); err != nil {
+			logrus.Errorf("failed to update project: %v", err)
+			return fmt.Errorf("failed to update project, %w", err)
+		}
+
+		//New history record
+		history := &types.ProjectHistory{
+			//news info
+			UpdateAt: time.Now(),
+			Tasks:    taskInfo,
+			//old
+			HolidaysID: project.HolidaysID,
+			Name:       project.Name,
+			Desc:       project.Desc,
+			Highlight:  project.Highlight,
+			ProjectID:  project.ProjectID,
+			DevsID:     project.DevsID,
+			CreatedAt:  project.CreatedAt,
+			CreaterID:  project.ProjectID,
+			Action:     "Remove devs",
+		}
+
+		return s.elastic.IndexNewHistory(ctx, history)
+
+	}
+	return err
 }
 
 func (s *Service) AddDevs(ctx context.Context, userIDs []string, projectID string) ([]string, error) {
@@ -451,14 +497,6 @@ func (s *Service) AddDevs(ctx context.Context, userIDs []string, projectID strin
 	if db.IsErrNotFound(err) {
 		logrus.Errorf("Project doesn't exist")
 		return nil, status.Project().NotFoundProject
-	}
-
-	for _, userID := range userIDs {
-		_, err = s.user.CheckUsersExist(ctx, userID)
-		if err != nil {
-			logrus.Errorf("Add Dev: User %v", err)
-			return nil, status.User().NotFoundUser
-		}
 	}
 
 	//check if user already in project
@@ -483,6 +521,7 @@ func (s *Service) AddDevs(ctx context.Context, userIDs []string, projectID strin
 	return userIDs, nil
 }
 
+//Remove dev of this project
 func (s *Service) RemoveDev(ctx context.Context, userID string, projectID string) error {
 
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
@@ -498,12 +537,6 @@ func (s *Service) RemoveDev(ctx context.Context, userID string, projectID string
 		return status.Project().NotFoundProject
 	}
 
-	_, err = s.user.CheckUsersExist(ctx, userID)
-	if err != nil {
-		logrus.Errorf("Remove Dev: User %v", err)
-		return status.User().NotFoundUser
-	}
-	//check if user have not in project yet
 	NotInProject := true
 	for _, devID := range project.DevsID {
 		if userID == devID {
@@ -520,41 +553,4 @@ func (s *Service) RemoveDev(ctx context.Context, userID string, projectID string
 	}
 
 	return nil
-}
-
-func (s *Service) FindAllDevs(ctx context.Context, projectID string) ([]*types.UserInfo, error) {
-
-	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
-		return nil, err
-	}
-	// Check project exist
-	project, err := s.mongo.FindByProjectID(ctx, projectID)
-
-	if err != nil && !db.IsErrNotFound(err) {
-		logrus.Errorf("failed to check existing project by ID: %v", err)
-		return nil, fmt.Errorf("failed to check existing project by ID: %w", err)
-	}
-
-	if db.IsErrNotFound(err) {
-		logrus.Errorf("Project doesn't exist")
-		return nil, status.Project().NotFoundProject
-	}
-
-	//TODO remove devsid
-	for _, user := range project.DevsID {
-		devNotFound, err := s.user.CheckUsersExist(ctx, user)
-		if err != nil {
-			logrus.Infof("Removing Dev IDs from project INFO %v", devNotFound)
-			if err := s.mongo.UpdateDevsID(ctx, []string{devNotFound}, projectID, false); err != nil {
-				logrus.Errorf("Failed to update devs ID in project info %v", err)
-				return nil, err
-			}
-		}
-	}
-
-	var info []*types.UserInfo
-
-	info, err = s.user.GetDevsInfo(ctx, project.DevsID)
-
-	return info, nil
 }

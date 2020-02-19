@@ -17,14 +17,16 @@ import (
 type (
 	service interface {
 		Create(ctx context.Context, req *types.CreateProjectRequest) (*types.Project, error)
-		Save(ctx context.Context, id string, req *types.SaveProject) (*types.Project, error)
+
+		//Client use SAVE api, sent all tasks of project, only update tasks has new update_at time ==> Client has to take care of task info strictly
+		Save(ctx context.Context, id string, req *types.SaveProject) (*types.ProjectHistory, error)
 		Update(ctx context.Context, id string, req *types.UpdateProject) (*types.ProjectHistory, error)
 		Delete(ctx context.Context, id string) error
 
 		FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, error)
-		FindAllDevs(context.Context, string) ([]*types.UserInfo, error)
 		FindByID(context.Context, string) (*types.Project, error)
 
+		//TODO: check userID exist
 		AddDevs(ctx context.Context, userID []string, projectID string) ([]string, error)
 		RemoveDev(ctx context.Context, userID string, projectID string) error
 	}
@@ -60,7 +62,7 @@ func (h *Handler) Save(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	//Update project tasks
-	_, err := h.srv.Save(r.Context(), id, &req)
+	info, err := h.srv.Save(r.Context(), id, &req)
 
 	if err != nil {
 		logrus.Errorf("Fail to Save Project due to, %v", err)
@@ -69,7 +71,7 @@ func (h *Handler) Save(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond.JSON(w, http.StatusOK, types.BaseResponse{
-		Data: req,
+		Data: info,
 	})
 }
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
@@ -238,26 +240,5 @@ func (h *Handler) RemoveDev(w http.ResponseWriter, r *http.Request) {
 
 	respond.JSON(w, http.StatusOK, types.BaseResponse{
 		Data: req,
-	})
-}
-
-func (h *Handler) FindAllDevs(w http.ResponseWriter, r *http.Request) {
-	projectID := mux.Vars(r)["project_id"]
-	if projectID == "" {
-		logrus.Errorf("Fail to get devs of project due to empty project ID")
-		respond.Error(w, fmt.Errorf("Project ID is not valid"), http.StatusBadRequest)
-		return
-	}
-
-	devs, err := h.srv.FindAllDevs(r.Context(), projectID)
-
-	if err != nil {
-		logrus.Errorf("Fail to get devs from project due to %v", err)
-		respond.Error(w, err, http.StatusBadRequest)
-		return
-	}
-
-	respond.JSON(w, http.StatusOK, types.BaseResponse{
-		Data: devs,
 	})
 }

@@ -29,16 +29,22 @@ type (
 		Validate(ctx context.Context, obj string, act string) error
 	}
 
+	ProjectService interface {
+		RemoveDevs(ctx context.Context, userID string) error
+	}
+
 	Service struct {
-		repo   Repository
-		policy PolicyService
+		repo    Repository
+		policy  PolicyService
+		project ProjectService
 	}
 )
 
-func New(repo Repository, policy PolicyService) *Service {
+func New(repo Repository, policy PolicyService, project ProjectService) *Service {
 	return &Service{
-		repo:   repo,
-		policy: policy,
+		repo:    repo,
+		policy:  policy,
+		project: project,
 	}
 }
 
@@ -204,7 +210,10 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 		logrus.Warning("This is PM_ID, cannot delete PM account, how can you get a pm_ID?")
 		return status.Sercurity().InvalidAction
 	}
-
+	if err := s.project.RemoveDevs(ctx, id); err != nil {
+		logrus.Errorf("Fail to remove Dev from project due to %v", err)
+		return fmt.Errorf("Cannot remove Dev from projects, err:%w", err)
+	}
 	return s.repo.Delete(ctx, id)
 }
 

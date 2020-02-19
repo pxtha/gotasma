@@ -32,16 +32,23 @@ type (
 	PolicyServices interface {
 		Validate(ctx context.Context, obj string, act string) error
 	}
+
+	ProjectServices interface {
+		RemoveHoliday(ctx context.Context, holidayID string) error
+	}
+
 	Service struct {
-		repo   Repository
-		policy PolicyServices
+		repo    Repository
+		policy  PolicyServices
+		project ProjectServices
 	}
 )
 
-func New(repo Repository, policy PolicyServices) *Service {
+func New(repo Repository, policy PolicyServices, project ProjectServices) *Service {
 	return &Service{
-		repo:   repo,
-		policy: policy,
+		repo:    repo,
+		policy:  policy,
+		project: project,
 	}
 }
 
@@ -131,14 +138,19 @@ func (s *Service) Update(ctx context.Context, id string, req *types.HolidayReque
 	return info, nil
 }
 
-//TODO: remove holidays_id in project
+//Delete DONE: Remove holidays_id in project
 func (s *Service) Delete(ctx context.Context, id string) error {
+	//check policy
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
 		return err
 	}
 	if err := s.repo.Delete(ctx, id); err != nil {
 		logrus.Errorf("Fail to delete holiday due to %v", err)
 		return status.Holiday().NotFoundHoliday
+	}
+	if err := s.project.RemoveHoliday(ctx, id); err != nil {
+		logrus.Errorf("Fail to delete holiday in project due to %v", err)
+		return fmt.Errorf("Cannot remove holiday from projects, err:%w", err)
 	}
 	return nil
 }
@@ -174,7 +186,6 @@ func (s *Service) FindAll(ctx context.Context) ([]*types.Holiday, error) {
 	return info, err
 }
 
-//TODO check holiday
 func (s *Service) FindByID(ctx context.Context, id string) (string, error) {
 
 	_, err := s.repo.FindByID(ctx, id)

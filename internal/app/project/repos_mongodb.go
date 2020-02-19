@@ -58,6 +58,20 @@ func (r *MongoDBRepository) FindAllByUserID(ctx context.Context, id string, role
 	return project, nil
 }
 
+func (r *MongoDBRepository) FindAllByHolidaysID(ctx context.Context, holidayID string) ([]*types.Project, error) {
+
+	selector := bson.M{"holidays_id": holidayID}
+	s := r.session.Clone()
+	defer s.Close()
+
+	var project []*types.Project
+
+	if err := r.collection(s).Find(selector).All(&project); err != nil {
+		return nil, err
+	}
+	return project, nil
+}
+
 func (r *MongoDBRepository) Create(ctx context.Context, project *types.Project) error {
 	s := r.session.Clone()
 	defer s.Clone()
@@ -134,23 +148,14 @@ func (r *MongoDBRepository) UpdateDevsID(ctx context.Context, devsID []string, p
 	},
 	)
 }
-func (r *MongoDBRepository) UpdateHolidaysID(ctx context.Context, holidaysID []string, projectID string, addToSet bool) error {
+func (r *MongoDBRepository) UpdateHolidaysID(ctx context.Context, holiday string, projectID string) error {
 
 	s := r.session.Clone()
 	defer s.Clone()
-	//add data to array if not exist
-	action := "$addToSet"
+
+	action := "$pull"
 	data := bson.M{
-		"holidays_id": bson.M{
-			"$each": holidaysID,
-		},
-	}
-	//pull data out of array
-	if !addToSet {
-		action = "$pull"
-		data = bson.M{
-			"holidays_id": holidaysID[0],
-		}
+		"holidays_id": holiday,
 	}
 
 	return r.collection(s).Update(bson.M{"project_id": projectID}, bson.M{

@@ -39,7 +39,7 @@ type (
 		Children         []string  `json:"children,omitempty" bson:"children"`
 		AllChildren      []string  `json:"all_children,omitempty" bson:"all_children"`
 		Effort           int       `json:"effort,omitempty" bson:"effort"`
-		DevsID           []string  `json:"devs_id,omitempty" bson:"dev_id"`
+		DevsID           []string  `json:"devs_id,omitempty" bson:"devs_id"`
 		Type             string    `json:"type,omitempty" bson:"type" validate:"required"`
 		UpdateAt         time.Time `json:"updated_at,omitempty" bson:"updated_at"`
 	}
@@ -50,11 +50,11 @@ type (
 		ProjectID  string    `json:"project_id,omitempty" bson:"project_id"`
 		CreaterID  string    `json:"creater_id,omitempty" bson:"creater_id"`
 		DevsID     []string  `json:"devs_id,omitempty" bson:"devs_id"`
-		HolidaysID []string  `json:"holidays_id,omitempty" bson:"holidays_id"`
 		Tasks      []*Task   `json:"tasks,omitempty" bson:"tasks"`
 		CreatedAt  time.Time `json:"created_at,omitempty" bson:"created_at"`
 		UpdateAt   time.Time `json:"updated_at,omitempty" bson:"updated_at"`
 		Highlight  bool      `json:"highlight,omitempty" bson:"highlight"`
+		HolidaysID []string  `json:"holidays_id,omitempty" bson:"holidays_id"`
 	}
 
 	ProjectHistory struct {

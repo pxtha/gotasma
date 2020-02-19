@@ -23,23 +23,26 @@ func NewRouter() (http.Handler, error) {
 		return nil, err
 	}
 	//=================User=====================
-	userSrv, err := newUserService(policySrv)
+	projectSrv, err := newProjectService(policySrv, nil)
+	userSrv, err := newUserService(policySrv, projectSrv)
 	if err != nil {
 		return nil, err
 	}
 	userHandler := newUserHandler(userSrv)
 	//===============Holiday====================
-	holidaySrv, err := newHolidayService(policySrv)
+	holidaySrv, err := newHolidayService(policySrv, projectSrv)
 	if err != nil {
 		return nil, err
 	}
 	holidayHandler := newHolidayHandler(holidaySrv)
+
 	//===============Project====================
-	projectSrv, err := newProjectService(policySrv, userSrv, holidaySrv)
+	projectSrv, err = newProjectService(policySrv, holidaySrv)
 	if err != nil {
 		return nil, err
 	}
 	projectHandler := newProjectHandler(projectSrv)
+
 	//===============Sub handler================
 	jwtSignVerifier := newJWTSignVerifier()
 	userInfoMiddleware := auth.UserInfoMiddleware(jwtSignVerifier)
