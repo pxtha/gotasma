@@ -210,10 +210,12 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 		logrus.Warning("This is PM_ID, cannot delete PM account, how can you get a pm_ID?")
 		return status.Sercurity().InvalidAction
 	}
+
 	if err := s.project.RemoveDevs(ctx, id); err != nil {
 		logrus.Errorf("Fail to remove Dev from project due to %v", err)
 		return fmt.Errorf("Cannot remove Dev from projects, err:%w", err)
 	}
+
 	return s.repo.Delete(ctx, id)
 }
 

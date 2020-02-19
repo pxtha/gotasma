@@ -295,13 +295,11 @@ func (h *Handler) RemoveHoliday(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	holiday, err := h.srv.RemoveHoliday(r.Context(), req.UserID, projectID)
-
 	if err != nil {
 		logrus.Errorf("Fail to remove holiday from project due to %v", err)
 		respond.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-
 	respond.JSON(w, http.StatusOK, types.BaseResponse{
 		Data: holiday,
 	})

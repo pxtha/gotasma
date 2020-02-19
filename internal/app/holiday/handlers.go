@@ -18,6 +18,7 @@ type (
 		Create(ctx context.Context, req *types.HolidayRequest) (*types.Holiday, error)
 		Delete(ctx context.Context, id string) error
 		Update(ctx context.Context, id string, req *types.HolidayRequest) (*types.HolidayInfo, error)
+		//User can see all the holiday which PM had created
 		FindAll(ctx context.Context) ([]*types.Holiday, error)
 	}
 	Handler struct {
