@@ -101,11 +101,10 @@ func (r *MongoDBRepository) Update(ctx context.Context, id string, req *types.Up
 
 	return r.collection(s).Update(bson.M{"project_id": id}, bson.M{
 		"$set": bson.M{
-			"updated_at":  time.Now(),
-			"desc":        req.Desc,
-			"highlight":   req.Highlight,
-			"holidays_id": req.HolidaysID,
-			"name":        req.Name,
+			"updated_at": time.Now(),
+			"desc":       req.Desc,
+			"highlight":  req.Highlight,
+			"name":       req.Name,
 		},
 	},
 	)

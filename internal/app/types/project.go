@@ -45,30 +45,28 @@ type (
 	}
 
 	Project struct {
-		Name       string    `json:"name,omitempty" bson:"name"`
-		Desc       string    `json:"desc,omitempty" bson:"desc"`
-		ProjectID  string    `json:"project_id,omitempty" bson:"project_id"`
-		CreaterID  string    `json:"creater_id,omitempty" bson:"creater_id"`
-		DevsID     []string  `json:"devs_id,omitempty" bson:"devs_id"`
-		Tasks      []*Task   `json:"tasks,omitempty" bson:"tasks"`
-		CreatedAt  time.Time `json:"created_at,omitempty" bson:"created_at"`
-		UpdateAt   time.Time `json:"updated_at,omitempty" bson:"updated_at"`
-		Highlight  bool      `json:"highlight,omitempty" bson:"highlight"`
-		HolidaysID []string  `json:"holidays_id,omitempty" bson:"holidays_id"`
+		Name      string    `json:"name,omitempty" bson:"name"`
+		Desc      string    `json:"desc,omitempty" bson:"desc"`
+		ProjectID string    `json:"project_id,omitempty" bson:"project_id"`
+		CreaterID string    `json:"creater_id,omitempty" bson:"creater_id"`
+		DevsID    []string  `json:"devs_id,omitempty" bson:"devs_id"`
+		Tasks     []*Task   `json:"tasks,omitempty" bson:"tasks"`
+		CreatedAt time.Time `json:"created_at,omitempty" bson:"created_at"`
+		UpdateAt  time.Time `json:"updated_at,omitempty" bson:"updated_at"`
+		Highlight bool      `json:"highlight,omitempty" bson:"highlight"`
 	}
 
 	ProjectHistory struct {
-		Name       string    `json:"name,omitempty" bson:"name"`
-		Desc       string    `json:"desc,omitempty" bson:"desc"`
-		ProjectID  string    `json:"project_id,omitempty" bson:"project_id"`
-		CreaterID  string    `json:"creater_id,omitempty" bson:"creater_id"`
-		DevsID     []string  `json:"devs_id,omitempty" bson:"devs_id"`
-		HolidaysID []string  `json:"holidays_id,omitempty" bson:"holidays_id"`
-		Tasks      []*Task   `json:"tasks,omitempty" bson:"tasks"`
-		CreatedAt  time.Time `json:"created_at,omitempty" bson:"created_at"`
-		UpdateAt   time.Time `json:"updated_at,omitempty" bson:"updated_at"`
-		Highlight  bool      `json:"highlight" bson:"highlight"`
-		Action     string    `json:"action,omitempty" bson:"action"`
+		Name      string    `json:"name,omitempty" bson:"name"`
+		Desc      string    `json:"desc,omitempty" bson:"desc"`
+		ProjectID string    `json:"project_id,omitempty" bson:"project_id"`
+		CreaterID string    `json:"creater_id,omitempty" bson:"creater_id"`
+		DevsID    []string  `json:"devs_id,omitempty" bson:"devs_id"`
+		Tasks     []*Task   `json:"tasks,omitempty" bson:"tasks"`
+		CreatedAt time.Time `json:"created_at,omitempty" bson:"created_at"`
+		UpdateAt  time.Time `json:"updated_at,omitempty" bson:"updated_at"`
+		Highlight bool      `json:"highlight" bson:"highlight"`
+		Action    string    `json:"action,omitempty" bson:"action"`
 	}
 
 	ProjectInfo struct {
@@ -85,9 +83,8 @@ type (
 	}
 
 	CreateProjectRequest struct {
-		Name       string   `json:"name,omitempty"  validate:"required,gt=3"`
-		HolidaysID []string `json:"holidays_id,omitempty" validate:"required"`
-		Desc       string   `json:"desc,omitempty"`
+		Name string `json:"name,omitempty"  validate:"required,gt=3"`
+		Desc string `json:"desc,omitempty"`
 	}
 
 	SaveProject struct {
@@ -95,10 +92,9 @@ type (
 	}
 
 	UpdateProject struct {
-		Name       string   `json:"name" validate:"required" `
-		Desc       string   `json:"desc"  validate:"required"`
-		HolidaysID []string `json:"holidays_id" validate:"required" `
-		Highlight  bool     `json:"highlight" `
+		Name      string `json:"name" validate:"required" `
+		Desc      string `json:"desc"  validate:"required"`
+		Highlight bool   `json:"highlight" `
 	}
 
 	RemoveUserRequest struct {
@@ -107,5 +103,13 @@ type (
 
 	AddUsersRequest struct {
 		UserIDs []string `json:"user_ids"`
+	}
+
+	RemoveHolidayRequest struct {
+		UserID string `json:"holiday_id"`
+	}
+
+	AddHolidayRequest struct {
+		UserID string `json:"holiday_id"`
 	}
 )

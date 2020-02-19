@@ -30,7 +30,7 @@ func NewRouter() (http.Handler, error) {
 	}
 	userHandler := newUserHandler(userSrv)
 	//===============Holiday====================
-	holidaySrv, err := newHolidayService(policySrv, projectSrv)
+	holidaySrv, err := newHolidayService(policySrv)
 	if err != nil {
 		return nil, err
 	}

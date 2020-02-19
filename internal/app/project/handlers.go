@@ -29,6 +29,10 @@ type (
 		//TODO: check userID exist
 		AddDevs(ctx context.Context, userID []string, projectID string) ([]string, error)
 		RemoveDev(ctx context.Context, userID string, projectID string) error
+
+		//Holiday services
+		AddHoliday(ctx context.Context, holidayID string, projectID string) (string, error)
+		RemoveHoliday(ctx context.Context, holidayID string, projectID string) (string, error)
 	}
 	Handler struct {
 		srv service
@@ -240,5 +244,65 @@ func (h *Handler) RemoveDev(w http.ResponseWriter, r *http.Request) {
 
 	respond.JSON(w, http.StatusOK, types.BaseResponse{
 		Data: req,
+	})
+}
+func (h *Handler) AddHoliday(w http.ResponseWriter, r *http.Request) {
+	projectID := mux.Vars(r)["project_id"]
+
+	if projectID == "" {
+		logrus.Errorf("Fail to assign project to user due to empty project ID")
+		respond.Error(w, fmt.Errorf("Project ID is not valid"), http.StatusBadRequest)
+		return
+	}
+
+	var req types.AddHolidayRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logrus.Errorf("Fail to pasre JSON to Add Users Request struct, %v", err)
+		respond.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	defer r.Body.Close()
+
+	holiday, err := h.srv.AddHoliday(r.Context(), req.UserID, projectID)
+	if err != nil {
+		logrus.Errorf("Fail to assign holiday to project due to %v", err)
+		respond.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	respond.JSON(w, http.StatusOK, types.BaseResponse{
+		Data: holiday,
+	})
+}
+
+func (h *Handler) RemoveHoliday(w http.ResponseWriter, r *http.Request) {
+
+	projectID := mux.Vars(r)["project_id"]
+	if projectID == "" {
+		logrus.Errorf("Fail to remove project to user due to empty project ID")
+		respond.Error(w, fmt.Errorf("Project ID is not valid"), http.StatusBadRequest)
+		return
+	}
+
+	var req types.RemoveHolidayRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logrus.Errorf("Fail to pasre JSON to Remove Users Request struct, %v", err)
+		respond.Error(w, err, http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	holiday, err := h.srv.RemoveHoliday(r.Context(), req.UserID, projectID)
+
+	if err != nil {
+		logrus.Errorf("Fail to remove holiday from project due to %v", err)
+		respond.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	respond.JSON(w, http.StatusOK, types.BaseResponse{
+		Data: holiday,
 	})
 }

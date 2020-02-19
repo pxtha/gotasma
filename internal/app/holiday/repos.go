@@ -71,9 +71,16 @@ func (r *MongoDBRepository) FindByID(ctx context.Context, id string) (*types.Hol
 	}
 	return holiday, nil
 }
+func (r *MongoDBRepository) FindByProjectID(ctx context.Context, id string) ([]*types.Holiday, error) {
 
-func (r *MongoDBRepository) collection(s *mgo.Session) *mgo.Collection {
-	return s.DB("").C("holiday")
+	selector := bson.M{"projects_id": id}
+	s := r.session.Clone()
+	defer s.Close()
+	var holiday []*types.Holiday
+	if err := r.collection(s).Find(selector).All(&holiday); err != nil {
+		return nil, err
+	}
+	return holiday, nil
 }
 
 func (r *MongoDBRepository) Delete(ctx context.Context, id string) error {
@@ -94,4 +101,34 @@ func (r *MongoDBRepository) FindAll(ctx context.Context, createrID string) ([]*t
 		return nil, err
 	}
 	return holidays, nil
+}
+
+func (r *MongoDBRepository) UpdateProjectsID(ctx context.Context, holidayID string, projectID string, addToSet bool) error {
+
+	s := r.session.Clone()
+	defer s.Clone()
+	//add data to array if not exist
+	action := "$addToSet"
+	data := bson.M{
+		"projects_id": projectID,
+	}
+	//pull data out of array
+	if !addToSet {
+		action = "$pull"
+		data = bson.M{
+			"projects_id": projectID,
+		}
+	}
+
+	return r.collection(s).Update(bson.M{"holiday_id": holidayID}, bson.M{
+		"$set": bson.M{
+			"updated_at": time.Now(),
+		},
+		action: data,
+	},
+	)
+}
+
+func (r *MongoDBRepository) collection(s *mgo.Session) *mgo.Collection {
+	return s.DB("").C("holiday")
 }
