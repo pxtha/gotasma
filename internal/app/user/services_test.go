@@ -25,7 +25,7 @@ func before(t *testing.T) (*MockRepository, *MockPolicyService, *user.Service) {
 	mockRepo := NewMockRepository(gomock.NewController(t))
 	mockPolicy := NewMockPolicyService(gomock.NewController(t))
 	//TODO mock project srv
-	services := user.New(mockRepo, mockPolicy, nil)
+	services := user.New(mockRepo, mockPolicy)
 	status.Init("../../../configs/status.yml")
 	return mockRepo, mockPolicy, services
 }
@@ -245,14 +245,13 @@ func TestAuth(t *testing.T) {
 		Email:    "pxthang@gmail.com",
 		Password: "1234",
 	}
-	pass, _ := services.GeneratePassword(user.Password)
 	userInfo := &types.User{
 		Email:     "thang@gmail.com",
 		FirstName: "Thang",
 		LastName:  "Pham",
 		CreaterID: "1234ab",
 		UserID:    "1234ab",
-		Password:  pass,
+		Password:  "123",
 	}
 	testCases := []struct {
 		desc   string

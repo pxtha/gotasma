@@ -47,16 +47,42 @@ func (h *Handler) Routes() []router.Route {
 			Handler:     h.Update,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
+		//Manage devs of project
+		{
+			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/devs",
+			Method:      http.MethodGet,
+			Handler:     h.FindAllDevs,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+		},
 		{
 			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/devs",
 			Method:      http.MethodPost,
-			Handler:     h.AddDevs,
+			Handler:     h.AddDev,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
 		{
 			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/devs",
 			Method:      http.MethodDelete,
 			Handler:     h.RemoveDev,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+		},
+		//Manage holidays of project
+		{
+			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/holidays",
+			Method:      http.MethodPost,
+			Handler:     h.AddHoliday,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+		},
+		{
+			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/holidays",
+			Method:      http.MethodDelete,
+			Handler:     h.RemoveHoliday,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+		},
+		{
+			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/holidays",
+			Method:      http.MethodGet,
+			Handler:     h.FindAllHolidays,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
 	}

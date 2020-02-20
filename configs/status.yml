@@ -33,6 +33,14 @@ user:
     code: 1310
     status: 400
     message: "Not found user"
+  not_found_project:
+    code: 1320
+    status: 400
+    message: "Project didn't have this user"
+  already_in_project:
+    code: 1330
+    status: 400
+    message: "Project already had this user"
 holiday:
   invalid_holiday:
     code: 1450
@@ -46,6 +54,14 @@ holiday:
     code: 1410
     status: 400
     message: "Not found holiday"
+  not_found_project:
+    code: 1420
+    status: 400
+    message: "Project didn't have this holiday"
+  already_in_project:
+    code: 1430
+    status: 400
+    message: "Project already had this holiday"
 policy:
   unauthorized:
     code: 1100
@@ -64,7 +80,7 @@ project:
   already_in_project:
     code: 1530
     status: 400
-    message: "User already in project"
+    message: "Cannot add or remove creater of this project"
   not_in_project:
     code: 1520
     status: 400

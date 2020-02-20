@@ -17,42 +17,41 @@ import (
 
 type (
 	mongoRepository interface {
-		//Check project exists
-		FindByName(ctx context.Context, name string, createrID string) (*types.Project, error)
-		//View project details (inclued tasks)
-		FindByProjectID(ctx context.Context, projectID string) (*types.Project, error)
-		//Search all project belong to user (Just projectinfo not include tasks but has number of tasks: int)
-		//If Pm searchs: return all project has creater_id == pmID
-		//If Devs search: return all project has devs_id == devid
-		FindAllByUserID(ctx context.Context, id string, role types.Role) ([]*types.Project, error)
-		//Find all project has holiday id
-		FindAllByHolidaysID(ctx context.Context, holidayID string) ([]*types.Project, error)
-		//Find all tasks has user id
 		Create(context.Context, *types.Project) error
 		Delete(ctx context.Context, id string) error
-		//Trusted data get from client
-		//ID must be uuid
-		//Update project API inclued (add, delete, update tasks)
 		Save(ctx context.Context, id string, req *types.SaveProject) error
 		Update(ctx context.Context, id string, req *types.UpdateProject) error
-		//UpdateDevsID action: addToSet or Pull
-		UpdateDevsID(ctx context.Context, devsID []string, projectID string, addToSet bool) error
-		UpdateHolidaysID(ctx context.Context, holiday string, projectID string) error
-		//FindholidayByID
+
+		FindByName(ctx context.Context, name string, createrID string) (*types.Project, error)
+		FindByProjectID(ctx context.Context, projectID string) (*types.Project, error)
+		FindAllByUserID(ctx context.Context, id string, role types.Role) ([]*types.Project, error)
+		FindAllByHolidaysID(ctx context.Context, holidayID string) ([]*types.Project, error)
 	}
 
 	elasticRepository interface {
 		IndexNewHistory(ctx context.Context, project *types.ProjectHistory) error
 	}
 
-	//PolicyService check permission of client
 	PolicyService interface {
 		Validate(ctx context.Context, obj string, act string) error
+	}
+
+	UserService interface {
+		RemoveProject(ctx context.Context, userID string, projectID string) error
+		AssignProject(ctx context.Context, userID string, projectID string) error
+		FindByProjectID(ctx context.Context, projectID string) ([]*types.UserInfo, error)
 	}
 
 	HolidayService interface {
 		RemoveProject(ctx context.Context, holidayID string, projectID string) error
 		AssignProject(ctx context.Context, holidayID string, projectID string) error
+		FindByProjectID(ctx context.Context, projectID string) ([]*types.HolidayInfo, error)
+	}
+
+	TaskService interface {
+		FindByProjectID(ctx context.Context, projectID string) ([]*types.Task, error)
+		Update(ctx context.Context, projectID string, req *types.Task) error
+		Create(ctx context.Context, projectID string, req *types.Task) (*types.Task, error)
 	}
 
 	Service struct {
@@ -60,19 +59,23 @@ type (
 		policy  PolicyService
 		holiday HolidayService
 		elastic elasticRepository
+		user    UserService
+		task    TaskService
 	}
 )
 
-func New(mongo mongoRepository, policy PolicyService, elastic elasticRepository, holiday HolidayService) *Service {
+func New(mongo mongoRepository, policy PolicyService, elastic elasticRepository, holiday HolidayService, user UserService, task TaskService) *Service {
 	return &Service{
 		mongo:   mongo,
 		policy:  policy,
 		elastic: elastic,
 		holiday: holiday,
+		user:    user,
+		task:    task,
 	}
 }
 
-//Save all tasks, only update tasks has new update time
+//Save all tasks, only update tasks has new update time, TODO: elasticsearch HISTORY
 func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (*types.ProjectHistory, error) {
 
 	//only PM can create Project
@@ -85,8 +88,6 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 		return nil, err
 	}
 
-	//Get lastest project
-	//Get lastest edit user
 	project, err := s.mongo.FindByProjectID(ctx, id)
 
 	if err != nil && !db.IsErrNotFound(err) {
@@ -99,62 +100,67 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 		return nil, status.Project().NotFoundProject
 	}
 
-	//validate each task
-	for i, task := range req.Tasks {
+	//Get tasks from db: oldtask := s.mongo.getbyprojectid()
+	dbTasks, err := s.task.FindByProjectID(ctx, project.ProjectID)
+	if err != nil {
+		logrus.Errorf("Database error: failed to get old tasks of project by project_id: %v", err)
+		return nil, fmt.Errorf("Fail to save tasks of project: %w", err)
+	}
 
-		if err := validator.Validate(task); err != nil {
+	for _, newtask := range req.Tasks {
+
+		exist := false
+		if err := validator.Validate(newtask); err != nil {
 			logrus.Errorf("Fail to update project due to invalid req, %w", err)
 			return nil, err
 		}
 
-		for _, devInTask := range task.DevsID {
-			devIsInProject := false
-			for _, dev := range project.DevsID {
-				if devInTask == dev {
-					devIsInProject = true
+		// For sync data
+		// Update only changed task base on UPDATETIME
+		for _, oldtask := range dbTasks {
+			if newtask.TaskID == oldtask.TaskID {
+				if newtask.UpdateAt != oldtask.UpdateAt {
+					//update this task
+					if err := s.task.Update(ctx, id, newtask); err != nil {
+						logrus.Errorf("Fail to update tasks due to, %w", err)
+						return nil, fmt.Errorf("Fail to update  tasks due to, %w", err)
+					}
 				}
-			}
-			if !devIsInProject {
-				logrus.Errorf("Devs %v in tasks %v not found ", devInTask, task.TaskID)
-				return nil, fmt.Errorf("Dev: "+devInTask+" %w", status.Project().NotFoundDev)
+				exist = true
+				break
 			}
 		}
-		//For sync data
-		//Update only changed task
-		for _, dbTask := range project.Tasks {
-			if dbTask.TaskID == task.TaskID {
-				if dbTask.UpdateAt == task.UpdateAt {
-					logrus.Info("Updating task INFO" + task.Label + "This task UpdateTime not change => not updated" + "Code: project/update/line 113 ")
-					req.Tasks[i] = dbTask
-				}
-				break
+		//this task not exist in db -> create new task
+		if !exist {
+			_, err := s.task.Create(ctx, id, newtask)
+			if err != nil {
+				return nil, fmt.Errorf("Fail to create new tasks due to, %w", err)
 			}
 		}
 	}
 
+	// if err = s.mongo.Save(ctx, id, req); err != nil {
+	// 	logrus.Errorf("failed to update project: %v", err)
+	// 	return nil, fmt.Errorf("failed to update project, %w", err)
+	// }
+
 	//Just update tasks field of project
 	//VueJS will do all the validation for data comes in
 	//So that user can edit tasks as long as they want, only save tasks when user use update task API
-
+	//History on elastic search
+	//TODO: add context: user info
 	history := &types.ProjectHistory{
 		//news info
-		Tasks:    req.Tasks,
 		UpdateAt: time.Now(),
 
 		//old
 		ProjectID: project.ProjectID,
 		Desc:      project.Desc,
-		DevsID:    project.DevsID,
 		CreatedAt: project.CreatedAt,
 		CreaterID: project.ProjectID,
 		Highlight: project.Highlight,
 		Name:      project.Name,
 		Action:    "Save project",
-	}
-
-	if err = s.mongo.Save(ctx, id, req); err != nil {
-		logrus.Errorf("failed to update project: %v", err)
-		return nil, fmt.Errorf("failed to update project, %w", err)
 	}
 
 	//TODO calculate workload
@@ -169,7 +175,7 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 	return history, nil
 }
 
-//Note: update data must inclue all the field,
+//Update Note: update data must inclue all the field,  TODO: elasticsearch HISTORY
 func (s *Service) Update(ctx context.Context, id string, req *types.UpdateProject) (*types.ProjectHistory, error) {
 
 	//only PM can update Project
@@ -182,6 +188,7 @@ func (s *Service) Update(ctx context.Context, id string, req *types.UpdateProjec
 		return nil, err
 	}
 
+	//Check project existing
 	project, err := s.mongo.FindByProjectID(ctx, id)
 
 	if err != nil && !db.IsErrNotFound(err) {
@@ -194,6 +201,13 @@ func (s *Service) Update(ctx context.Context, id string, req *types.UpdateProjec
 		return nil, status.Project().NotFoundProject
 	}
 
+	//Update project info
+	if err = s.mongo.Update(ctx, id, req); err != nil {
+		logrus.Errorf("failed to update project: %v", err)
+		return nil, fmt.Errorf("failed to update project, %w", err)
+	}
+
+	//History elastic search info
 	history := &types.ProjectHistory{
 		//news info
 		UpdateAt:  time.Now(),
@@ -202,17 +216,10 @@ func (s *Service) Update(ctx context.Context, id string, req *types.UpdateProjec
 		Highlight: req.Highlight,
 
 		//old
-		Tasks:     project.Tasks,
 		ProjectID: project.ProjectID,
-		DevsID:    project.DevsID,
 		CreatedAt: project.CreatedAt,
 		CreaterID: project.ProjectID,
 		Action:    "Update project",
-	}
-
-	if err = s.mongo.Update(ctx, id, req); err != nil {
-		logrus.Errorf("failed to update project: %v", err)
-		return nil, fmt.Errorf("failed to update project, %w", err)
 	}
 
 	//TODO calculate workload
@@ -227,6 +234,7 @@ func (s *Service) Update(ctx context.Context, id string, req *types.UpdateProjec
 	return history, nil
 }
 
+//Create TODO: elasticsearch HISTORY
 func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (*types.Project, error) {
 
 	pm := auth.FromContext(ctx)
@@ -241,6 +249,7 @@ func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (
 		return nil, err
 	}
 
+	//Check duplicate project's name of this PM
 	existingProject, err := s.mongo.FindByName(ctx, req.Name, pm.UserID)
 
 	if err != nil && !db.IsErrNotFound(err) {
@@ -253,6 +262,7 @@ func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (
 		return nil, status.Project().DuplicateProject
 	}
 
+	//Create new project
 	project := &types.Project{
 		CreaterID: pm.UserID,
 		Highlight: true,
@@ -266,14 +276,13 @@ func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (
 		return nil, fmt.Errorf("failed to create project, %w", err)
 	}
 
+	//History elastic search info
 	history := &types.ProjectHistory{
 		//news info
 		UpdateAt: time.Now(),
 		//old
-		Tasks:     project.Tasks,
 		ProjectID: project.ProjectID,
 		Desc:      project.Desc,
-		DevsID:    project.DevsID,
 		CreatedAt: project.CreatedAt,
 		CreaterID: project.ProjectID,
 		Highlight: project.Highlight,
@@ -289,18 +298,27 @@ func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (
 	return project, nil
 }
 
-func (s *Service) Delete(ctx context.Context, id string) error {
+//Delete TODO: elasticsearch HISTORY
+func (s *Service) Delete(ctx context.Context, projectID string) error {
+
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
 		return err
 	}
 
-	//Remove project from all holiday
-	if err := s.holiday.RemoveProject(ctx, "_all_holiday_", id); err != nil {
+	//Remove this project from all holiday
+	if err := s.holiday.RemoveProject(ctx, "_all_holiday_", projectID); err != nil {
 		logrus.Errorf("Fail to delete project due to %v", err)
 		return fmt.Errorf("failed to remove project %v", err)
 	}
 
-	if err := s.mongo.Delete(ctx, id); err != nil {
+	//Remove this project from all devs
+	if err := s.user.RemoveProject(ctx, "_all_devs_", projectID); err != nil {
+		logrus.Errorf("Fail to delete project due to %v", err)
+		return fmt.Errorf("failed to remove project %v", err)
+	}
+
+	//Remove project, return err if project not exist
+	if err := s.mongo.Delete(ctx, projectID); err != nil {
 		logrus.Errorf("Fail to delete project due to %v", err)
 		return status.Project().NotFoundProject
 	}
@@ -308,9 +326,9 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+//FindByID TODO: only devs of this project
 func (s *Service) FindByID(ctx context.Context, id string) (*types.Project, error) {
 
-	//TODO only devs of this project
 	project, err := s.mongo.FindByProjectID(ctx, id)
 
 	if err != nil && !db.IsErrNotFound(err) {
@@ -325,6 +343,7 @@ func (s *Service) FindByID(ctx context.Context, id string) (*types.Project, erro
 	return project, nil
 }
 
+//FindAllProjects  by user_id: PM and DEVs, TODO: policy
 func (s *Service) FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, error) {
 
 	user := auth.FromContext(ctx)
@@ -338,10 +357,8 @@ func (s *Service) FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, er
 			ProjectID: project.ProjectID,
 			Name:      project.Name,
 			CreaterID: project.CreaterID,
-			DevsID:    project.DevsID,
 			Highlight: project.Highlight,
 			UpdateAt:  project.UpdateAt,
-			Tasks:     len(project.Tasks),
 			Desc:      project.Desc,
 			CreatedAt: project.CreatedAt,
 		})
@@ -350,79 +367,15 @@ func (s *Service) FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, er
 	return info, err
 }
 
-//Removing devs_id not existing anymore (dev deleted)
-//TODO: history
-func (s *Service) RemoveDevs(ctx context.Context, userID string) error {
-	projects, err := s.mongo.FindAllByUserID(ctx, userID, types.DEV)
-	for _, project := range projects {
-		//Remove dev from project
-		if err := s.mongo.UpdateDevsID(ctx, []string{userID}, project.ProjectID, false); err != nil {
-			logrus.Errorf("Failed to update devs ID in project info %v", err)
-			return err
-		}
-		//Update all project's tasks
-		taskInfo := make([]*types.Task, 0)
-		for _, task := range project.Tasks {
-
-			//remove devid from tasks
-			for i, dev := range task.DevsID {
-				if dev == userID {
-					task.DevsID[i] = task.DevsID[len(task.DevsID)-1]
-					task.DevsID = task.DevsID[:len(task.DevsID)-1]
-				}
-			}
-			taskInfo = append(taskInfo, &types.Task{
-				Label:            task.Label,
-				AllChildren:      task.AllChildren,
-				Children:         task.Children,
-				DevsID:           task.DevsID,
-				Duration:         task.Duration,
-				Effort:           task.Effort,
-				End:              task.End,
-				EstimateDuration: task.EstimateDuration,
-				Parent:           task.Parent,
-				Parents:          task.Parents,
-				Start:            task.Start,
-				TaskID:           task.TaskID,
-				Type:             task.Type,
-				UpdateAt:         task.UpdateAt,
-			})
-		}
-
-		newTasks := &types.SaveProject{
-			Tasks: taskInfo,
-		}
-
-		if err = s.mongo.Save(ctx, project.ProjectID, newTasks); err != nil {
-			logrus.Errorf("failed to update project: %v", err)
-			return fmt.Errorf("failed to update project, %w", err)
-		}
-
-		//New history record
-		history := &types.ProjectHistory{
-			//news info
-			UpdateAt: time.Now(),
-			Tasks:    taskInfo,
-			//old
-			Name:      project.Name,
-			Desc:      project.Desc,
-			Highlight: project.Highlight,
-			ProjectID: project.ProjectID,
-			DevsID:    project.DevsID,
-			CreatedAt: project.CreatedAt,
-			CreaterID: project.ProjectID,
-			Action:    "Remove devs",
-		}
-
-		return s.elastic.IndexNewHistory(ctx, history)
-
-	}
-	return err
-}
-
-func (s *Service) AddHoliday(ctx context.Context, holidayID string, projectID string) (string, error) {
+//AddHoliday Mange holiday of project
+func (s *Service) AddHoliday(ctx context.Context, req *types.AddHolidayRequest, projectID string) (string, error) {
 
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return "", err
+	}
+
+	if err := validator.Validate(req); err != nil {
+		logrus.Errorf("Fail to add holiday to project due to invalid req, %w", err)
 		return "", err
 	}
 
@@ -439,17 +392,23 @@ func (s *Service) AddHoliday(ctx context.Context, holidayID string, projectID st
 		return "", status.Project().NotFoundProject
 	}
 
-	if err := s.holiday.AssignProject(ctx, holidayID, projectID); err != nil {
+	if err := s.holiday.AssignProject(ctx, req.HolidayID, projectID); err != nil {
 		logrus.Errorf("Failed to update projects_id in holiday info %v", err)
 		return "", err
 	}
 
-	return holidayID, nil
+	return req.HolidayID, nil
 }
 
-func (s *Service) RemoveHoliday(ctx context.Context, holidayID string, projectID string) (string, error) {
+//RemoveHoliday Mange holiday of project
+func (s *Service) RemoveHoliday(ctx context.Context, req *types.RemoveHolidayRequest, projectID string) (string, error) {
 
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return "", err
+	}
+
+	if err := validator.Validate(req); err != nil {
+		logrus.Errorf("Fail to remove holiday from project due to invalid req, %w", err)
 		return "", err
 	}
 
@@ -466,22 +425,124 @@ func (s *Service) RemoveHoliday(ctx context.Context, holidayID string, projectID
 		return "", status.Project().NotFoundProject
 	}
 
-	if err := s.holiday.RemoveProject(ctx, holidayID, projectID); err != nil {
+	if err := s.holiday.RemoveProject(ctx, req.HolidayID, projectID); err != nil {
 		logrus.Errorf("Fail to delete project due to %v", err)
-		return "", fmt.Errorf("failed to remove holiday from project %v", err)
+		return "", err
 	}
 
-	return holidayID, nil
+	return req.HolidayID, nil
 }
 
-func (s *Service) AddDevs(ctx context.Context, userIDs []string, projectID string) ([]string, error) {
+//FindAllHolidays Mange holiday of project
+func (s *Service) FindAllHolidays(ctx context.Context, projectID string) ([]*types.HolidayInfo, error) {
 
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
 		return nil, err
 	}
+	// Check project exist
+	_, err := s.mongo.FindByProjectID(ctx, projectID)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Errorf("failed to check existing project by ID: %v", err)
+		return nil, fmt.Errorf("failed to check existing project by ID: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Errorf("Project doesn't exist", err)
+		return nil, status.Project().NotFoundProject
+	}
+
+	var info []*types.HolidayInfo
+
+	info, err = s.holiday.FindByProjectID(ctx, projectID)
+	if err != nil {
+		logrus.Errorf("Fail to get holidays of project: %v", err)
+		return nil, fmt.Errorf("failed to get holidays of project: %w", err)
+	}
+	return info, nil
+}
+
+//AddDev Mange devs of project
+func (s *Service) AddDev(ctx context.Context, req *types.AddUsersRequest, projectID string) (string, error) {
+
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return "", err
+	}
+
+	if err := validator.Validate(req); err != nil {
+		logrus.Errorf("Fail to add user to project due to invalid req, %w", err)
+		return "", err
+	}
 
 	// Check project exist
 	project, err := s.mongo.FindByProjectID(ctx, projectID)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Errorf("failed to check existing project by ID: %v", err)
+		return "", fmt.Errorf("failed to check existing project by ID: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Errorf("Project doesn't exist", err)
+		return "", status.Project().NotFoundProject
+	}
+
+	if req.UserID == project.CreaterID {
+		logrus.Error("Cannot at, this is creater of this project")
+		return "", status.Project().AlreadyInProject
+	}
+
+	if err := s.user.AssignProject(ctx, req.UserID, projectID); err != nil {
+		logrus.Errorf("Failed to update devs ID in project info %v", err)
+		return "", err
+	}
+
+	return req.UserID, nil
+}
+
+//RemoveDev  Mange devs of project
+func (s *Service) RemoveDev(ctx context.Context, req *types.RemoveUserRequest, projectID string) (string, error) {
+
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return "", err
+	}
+
+	if err := validator.Validate(req); err != nil {
+		logrus.Errorf("Fail to remove user from project due to invalid req, %w", err)
+		return "", err
+	}
+
+	// Check project exist
+	project, err := s.mongo.FindByProjectID(ctx, projectID)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		return "", fmt.Errorf("failed to check existing project by ID: %w", err)
+	}
+	if db.IsErrNotFound(err) {
+		return "", status.Project().NotFoundProject
+	}
+
+	if req.UserID == project.CreaterID {
+		logrus.Error("Cannot at, this is creater of this project")
+		return "", status.Project().AlreadyInProject
+	}
+
+	if err := s.user.RemoveProject(ctx, req.UserID, projectID); err != nil {
+		logrus.Errorf("Fail to delete project due to %v", err)
+		return "", err
+	}
+
+	return req.UserID, nil
+}
+
+//FindAllDevs  Mange devs of project
+func (s *Service) FindAllDevs(ctx context.Context, projectID string) ([]*types.UserInfo, error) {
+
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return nil, err
+	}
+	// Check project exist
+	_, err := s.mongo.FindByProjectID(ctx, projectID)
 
 	if err != nil && !db.IsErrNotFound(err) {
 		logrus.Errorf("failed to check existing project by ID: %v", err)
@@ -493,58 +554,12 @@ func (s *Service) AddDevs(ctx context.Context, userIDs []string, projectID strin
 		return nil, status.Project().NotFoundProject
 	}
 
-	//check if user already in project
-	for _, userID := range userIDs {
+	var info []*types.UserInfo
 
-		for _, devID := range project.DevsID {
-			if userID == devID {
-				return nil, status.Project().AlreadyInProject
-			}
-		}
-		// cannot add PM to project
-		if userID == project.CreaterID {
-			return nil, status.Sercurity().InvalidAction
-		}
+	info, err = s.user.FindByProjectID(ctx, projectID)
+	if err != nil {
+		logrus.Errorf("Fail to get devs of project: %v", err)
+		return nil, fmt.Errorf("failed to get devs of project: %w", err)
 	}
-
-	if err := s.mongo.UpdateDevsID(ctx, userIDs, projectID, true); err != nil {
-		logrus.Errorf("Failed to update devs ID in project info %v", err)
-		return nil, err
-	}
-
-	return userIDs, nil
-}
-
-//Remove dev of this project
-func (s *Service) RemoveDev(ctx context.Context, userID string, projectID string) error {
-
-	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
-		return err
-	}
-	// Check project exist
-	project, err := s.mongo.FindByProjectID(ctx, projectID)
-
-	if err != nil && !db.IsErrNotFound(err) {
-		return fmt.Errorf("failed to check existing project by ID: %w", err)
-	}
-	if db.IsErrNotFound(err) {
-		return status.Project().NotFoundProject
-	}
-
-	NotInProject := true
-	for _, devID := range project.DevsID {
-		if userID == devID {
-			NotInProject = false
-		}
-	}
-	if NotInProject {
-		return status.Project().NotInProject
-	}
-
-	if err := s.mongo.UpdateDevsID(ctx, []string{userID}, projectID, false); err != nil {
-		logrus.Errorf("Failed to update devs ID in project info %v", err)
-		return err
-	}
-
-	return nil
+	return info, nil
 }

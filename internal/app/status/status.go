@@ -32,13 +32,19 @@ type (
 		InvalidHoliday    Status `yaml:"invalid_holiday"`
 		DuplicatedHoliday Status `yaml:"duplicated_holiday"`
 		NotFoundHoliday   Status `yaml:"not_found_holiday"`
+		NotFoundProject   Status `yaml:"not_found_project"`
+		AlreadyInProject  Status `yaml:"already_in_project"`
 	}
+
 	PolicyStatus struct {
 		Unauthorized Status
 	}
+
 	UserStatus struct {
-		DuplicatedEmail Status `yaml:"duplicated_email"`
-		NotFoundUser    Status `yaml:"not_found_user"`
+		DuplicatedEmail  Status `yaml:"duplicated_email"`
+		NotFoundUser     Status `yaml:"not_found_user"`
+		NotFoundProject  Status `yaml:"not_found_project"`
+		AlreadyInProject Status `yaml:"already_in_project"`
 	}
 	AuthStatus struct {
 		InvalidUserPassword Status `yaml:"invalid_user_password"`

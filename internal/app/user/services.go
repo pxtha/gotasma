@@ -18,33 +18,32 @@ import (
 type (
 	Repository interface {
 		Create(context.Context, *types.User) (string, error)
+		Delete(cxt context.Context, id string) error
+
 		FindByEmail(ctx context.Context, email string) (*types.User, error)
 		FindAllDev(ctx context.Context, createrID string) ([]*types.User, error)
 		FindDevsByID(ctx context.Context, userIDs []string) ([]*types.User, error)
-		Delete(cxt context.Context, id string) error
 		FindByID(ctx context.Context, UserID string) (*types.User, error)
+		FindByProjectID(ctx context.Context, projectID string) ([]*types.User, error)
+
+		//Assign or remove project from user
+		UpdateProjectsID(ctx context.Context, userID string, projectID string, addToSet bool) error
 	}
 
 	PolicyService interface {
 		Validate(ctx context.Context, obj string, act string) error
 	}
 
-	ProjectService interface {
-		RemoveDevs(ctx context.Context, userID string) error
-	}
-
 	Service struct {
-		repo    Repository
-		policy  PolicyService
-		project ProjectService
+		repo   Repository
+		policy PolicyService
 	}
 )
 
-func New(repo Repository, policy PolicyService, project ProjectService) *Service {
+func New(repo Repository, policy PolicyService) *Service {
 	return &Service{
-		repo:    repo,
-		policy:  policy,
-		project: project,
+		repo:   repo,
+		policy: policy,
 	}
 }
 
@@ -69,15 +68,16 @@ func (s *Service) Register(ctx context.Context, req *types.RegisterRequest) (*ty
 		return nil, status.User().DuplicatedEmail
 	}
 
-	password, err := s.GeneratePassword(req.Password)
+	rs, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
+		logrus.Errorf("failed to check hash password, %v", err)
 		return nil, fmt.Errorf("failed to generate password: %w", err)
 	}
 
 	userID := uuid.New()
 
 	user := &types.User{
-		Password:  password,
+		Password:  string(rs),
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Email:     req.Email,
@@ -118,15 +118,16 @@ func (s *Service) CreateDev(ctx context.Context, req *types.RegisterRequest) (*t
 		return nil, status.User().DuplicatedEmail
 	}
 
-	password, err := s.GeneratePassword(req.Password)
+	rs, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
+		logrus.Errorf("failed to check hash password, %v", err)
 		return nil, fmt.Errorf("failed to generate password: %w", err)
 	}
 
 	pm := auth.FromContext(ctx)
 
 	user := &types.User{
-		Password:  password,
+		Password:  string(rs),
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Email:     req.Email,
@@ -141,6 +142,31 @@ func (s *Service) CreateDev(ctx context.Context, req *types.RegisterRequest) (*t
 	}
 
 	return user.Strip(), nil
+}
+
+func (s *Service) Delete(ctx context.Context, id string) error {
+
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return err
+	}
+
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Errorf("failed to check existing user by ID, err: %v", err)
+		return err
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Errorf("User doesn't exist, err: %v", err)
+		return status.User().NotFoundUser
+	}
+
+	if user.Role == types.PM {
+		logrus.Warning("This is PM_ID, cannot delete PM account")
+		return status.Sercurity().InvalidAction
+	}
+
+	return s.repo.Delete(ctx, id)
 }
 
 func (s *Service) Auth(ctx context.Context, email, password string) (*types.User, error) {
@@ -170,108 +196,116 @@ func (s *Service) FindAllDev(ctx context.Context) ([]*types.UserInfo, error) {
 
 	users, err := s.repo.FindAllDev(ctx, pm.UserID)
 	if err != nil {
-		logrus.Errorf("can not find devs of PM, err: %v", err)
-		return nil, status.User().NotFoundUser
+		logrus.Errorf("Database err: failed to find DEV, err: %v", err)
+		return nil, fmt.Errorf("Failed to find devs info of this user: %w", err)
 	}
 
 	info := make([]*types.UserInfo, 0)
 	for _, usr := range users {
 		info = append(info, &types.UserInfo{
-			Email:     usr.Email,
-			FirstName: usr.FirstName,
-			LastName:  usr.LastName,
-			Role:      usr.Role,
-			CreaterID: usr.CreaterID,
-			UserID:    usr.UserID,
-			CreatedAt: usr.CreatedAt,
-			UpdateAt:  usr.UpdateAt,
+			Email:      usr.Email,
+			FirstName:  usr.FirstName,
+			LastName:   usr.LastName,
+			Role:       usr.Role,
+			CreaterID:  usr.CreaterID,
+			UserID:     usr.UserID,
+			CreatedAt:  usr.CreatedAt,
+			UpdateAt:   usr.UpdateAt,
+			ProjectsID: usr.ProjectsID,
 		})
 	}
 	return info, nil
 }
 
-//TODO: remove Devs_id in project
-func (s *Service) Delete(ctx context.Context, id string) error {
-	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
-		return err
-	}
+func (s *Service) FindByProjectID(ctx context.Context, projectID string) ([]*types.UserInfo, error) {
 
-	user, err := s.repo.FindByID(ctx, id)
+	users, err := s.repo.FindByProjectID(ctx, projectID)
+
+	info := make([]*types.UserInfo, 0)
+	for _, user := range users {
+		info = append(info, &types.UserInfo{
+			UserID:     user.UserID,
+			Email:      user.Email,
+			FirstName:  user.FirstName,
+			LastName:   user.LastName,
+			Role:       user.Role,
+			CreaterID:  user.CreaterID,
+			CreatedAt:  user.CreatedAt,
+			ProjectsID: user.ProjectsID,
+		})
+	}
+	return info, err
+}
+
+// RemoveProject Mange project ids of each user
+func (s *Service) RemoveProject(ctx context.Context, userID string, projectID string) error {
+
+	users, err := s.repo.FindByProjectID(ctx, projectID)
+	if userID == "_all_devs_" {
+		//remove project from all holidays
+		for _, user := range users {
+			if err := s.repo.UpdateProjectsID(ctx, user.UserID, projectID, false); err != nil {
+				logrus.Error("Database error, Failed to remove project from user %w", err)
+				return fmt.Errorf("Failed to remove project from user: %w", err)
+			}
+		}
+	} else {
+		//remove this user from this project
+		//check user exist, is projectID in this user info?
+		user, err := s.repo.FindByID(ctx, userID)
+		if err != nil && !db.IsErrNotFound(err) {
+			logrus.Error("Failed to check existing user by id %w", err)
+			return fmt.Errorf("Failed to check existing user by id: %w", err)
+		}
+
+		if db.IsErrNotFound(err) {
+			logrus.Error("User not found")
+			return status.User().NotFoundUser
+		}
+
+		hasProject := false
+		for _, project := range user.ProjectsID {
+			if project == projectID {
+				hasProject = true
+			}
+		}
+
+		if !hasProject {
+			logrus.Errorf("Project didn't have this user")
+			return status.User().NotFoundProject
+		}
+
+		if err := s.repo.UpdateProjectsID(ctx, userID, projectID, false); err != nil {
+			logrus.Error("Database error, Failed to remove project from user %w", err)
+			return fmt.Errorf("Failed to remove project from user: %w", err)
+		}
+	}
+	return err
+}
+
+func (s *Service) AssignProject(ctx context.Context, userID string, projectID string) error {
+
+	user, err := s.repo.FindByID(ctx, userID)
 	if err != nil && !db.IsErrNotFound(err) {
-		logrus.Errorf("failed to check existing user by ID, err: %v", err)
-		return err
+		logrus.Error("Failed to check existing user by id %w", err)
+		return fmt.Errorf("Failed to check existing user by id: %w", err)
 	}
 
 	if db.IsErrNotFound(err) {
-		logrus.Errorf("User doesn't exist, err: %v", err)
+		logrus.Error("User not found")
 		return status.User().NotFoundUser
 	}
-	if user.Role == types.PM {
-		logrus.Warning("This is PM_ID, cannot delete PM account, how can you get a pm_ID?")
-		return status.Sercurity().InvalidAction
+
+	hasProject := false
+	for _, project := range user.ProjectsID {
+		if project == projectID {
+			hasProject = true
+		}
+	}
+	if hasProject {
+		logrus.Errorf("Project already had this user")
+		return status.User().AlreadyInProject
 	}
 
-	if err := s.project.RemoveDevs(ctx, id); err != nil {
-		logrus.Errorf("Fail to remove Dev from project due to %v", err)
-		return fmt.Errorf("Cannot remove Dev from projects, err:%w", err)
-	}
-
-	return s.repo.Delete(ctx, id)
-}
-
-func (s *Service) CheckUsersExist(ctx context.Context, userID string) (string, error) {
-
-	_, err := s.repo.FindByID(ctx, userID)
-
-	if err != nil && !db.IsErrNotFound(err) {
-		logrus.Errorf("failed to check existing user by ID, err: %v", err)
-		return userID, err
-	}
-
-	if db.IsErrNotFound(err) {
-		logrus.Errorf("User doesn't exist, err: %v", err)
-		return userID, status.User().NotFoundUser
-	}
-
-	return "", nil
-}
-
-func (s *Service) GetDevsInfo(ctx context.Context, userIDs []string) ([]*types.UserInfo, error) {
-
-	//TODO update project info DevsID if not found
-	users, err := s.repo.FindDevsByID(ctx, userIDs)
-
-	if err != nil && !db.IsErrNotFound(err) {
-		logrus.Errorf("failed to check existing user by ID, err: %v", err)
-		return nil, err
-	}
-
-	if db.IsErrNotFound(err) {
-		logrus.Errorf("User doesn't exist, err: %v", err)
-		return nil, status.User().NotFoundUser
-	}
-
-	info := make([]*types.UserInfo, 0)
-	for _, usr := range users {
-		info = append(info, &types.UserInfo{
-			Email:     usr.Email,
-			FirstName: usr.FirstName,
-			LastName:  usr.LastName,
-			Role:      usr.Role,
-			CreaterID: usr.CreaterID,
-			UserID:    usr.UserID,
-			CreatedAt: usr.CreatedAt,
-			UpdateAt:  usr.UpdateAt,
-		})
-	}
-	return info, nil
-}
-
-func (s *Service) GeneratePassword(pass string) (string, error) {
-	rs, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
-	if err != nil {
-		logrus.Errorf("failed to check hash password, %v", err)
-		return "", fmt.Errorf("failed to generate password: %w", err)
-	}
-	return string(rs), nil
+	return s.repo.UpdateProjectsID(ctx, userID, projectID, true)
 }

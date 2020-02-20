@@ -94,7 +94,6 @@ func (s *Service) Create(ctx context.Context, req *types.HolidayRequest) (*types
 }
 
 //Update holiday info
-//TODO: add or remove projects id
 func (s *Service) Update(ctx context.Context, id string, req *types.HolidayRequest) (*types.HolidayInfo, error) {
 	//Check policy
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
@@ -114,7 +113,7 @@ func (s *Service) Update(ctx context.Context, id string, req *types.HolidayReque
 	}
 
 	//check existing holiday of this PM
-	existingHoliday, err := s.repo.FindByID(ctx, id)
+	_, err := s.repo.FindByID(ctx, id)
 	if err != nil && !db.IsErrNotFound(err) {
 		logrus.Error("Failed to check existing holiday by title %w", err)
 		return nil, fmt.Errorf("Failed to check existing holiday by title: %w", err)
@@ -125,12 +124,11 @@ func (s *Service) Update(ctx context.Context, id string, req *types.HolidayReque
 	}
 
 	info := &types.HolidayInfo{
-		Title:      req.Title,
-		Start:      req.Start,
-		End:        req.End,
-		ProjectsID: existingHoliday.ProjectsID,
-		Duration:   ((req.End - req.Start) / MilisecondInDay),
-		UpdateAt:   time.Now(),
+		Title:    req.Title,
+		Start:    req.Start,
+		End:      req.End,
+		Duration: ((req.End - req.Start) / MilisecondInDay),
+		UpdateAt: time.Now(),
 	}
 
 	if err := s.repo.Update(ctx, info, id); err != nil {
@@ -152,20 +150,20 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-//FindAll TODO: policy and User only see holiday of projects that assigned to user
 func (s *Service) FindAll(ctx context.Context) ([]*types.Holiday, error) {
 
 	user := auth.FromContext(ctx)
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return nil, err
+	}
 
 	var holidays []*types.Holiday
 
-	//Check current client roles, pass different id to func depends on role
-	userID := user.UserID
-	if user.Role != types.PM {
-		userID = user.CreaterID
+	holidays, err := s.repo.FindAll(ctx, user.UserID)
+	if err != nil {
+		logrus.Errorf("Database err: failed to find holidays, err: %v", err)
+		return nil, fmt.Errorf("Failed to find holidays of this user: %w", err)
 	}
-	//Client can view all holiday belong to PM
-	holidays, err := s.repo.FindAll(ctx, userID)
 
 	info := make([]*types.Holiday, 0)
 	for _, holiday := range holidays {
@@ -179,6 +177,24 @@ func (s *Service) FindAll(ctx context.Context) ([]*types.Holiday, error) {
 			CreaterID:  holiday.CreaterID,
 			UpdateAt:   holiday.UpdateAt,
 			ProjectsID: holiday.ProjectsID,
+		})
+	}
+	return info, err
+}
+
+func (s *Service) FindByProjectID(ctx context.Context, projectID string) ([]*types.HolidayInfo, error) {
+
+	holidays, err := s.repo.FindByProjectID(ctx, projectID)
+
+	info := make([]*types.HolidayInfo, 0)
+	for _, holiday := range holidays {
+		info = append(info, &types.HolidayInfo{
+			HolidayID: holiday.HolidayID,
+			Title:     holiday.Title,
+			Start:     holiday.Start,
+			End:       holiday.End,
+			Duration:  holiday.Duration,
+			UpdateAt:  holiday.UpdateAt,
 		})
 	}
 	return info, err
@@ -202,7 +218,7 @@ func (s *Service) FindByID(ctx context.Context, id string) (string, error) {
 
 func (s *Service) AssignProject(ctx context.Context, holidayID string, projectID string) error {
 
-	_, err := s.repo.FindByID(ctx, holidayID)
+	holiday, err := s.repo.FindByID(ctx, holidayID)
 	if err != nil && !db.IsErrNotFound(err) {
 		logrus.Error("Failed to check existing holiday by id %w", err)
 		return fmt.Errorf("Failed to check existing holiday by id: %w", err)
@@ -213,6 +229,16 @@ func (s *Service) AssignProject(ctx context.Context, holidayID string, projectID
 		return status.Holiday().NotFoundHoliday
 	}
 
+	hasProject := false
+	for _, project := range holiday.ProjectsID {
+		if project == projectID {
+			hasProject = true
+		}
+	}
+	if hasProject {
+		logrus.Errorf("Project already had this holiday")
+		return status.Holiday().AlreadyInProject
+	}
 	return s.repo.UpdateProjectsID(ctx, holidayID, projectID, true)
 }
 
@@ -229,6 +255,28 @@ func (s *Service) RemoveProject(ctx context.Context, holidayID string, projectID
 		}
 	} else {
 		//remove project from one holiday
+		//check holiday exist, is projectID in this holiday?
+		holiday, err := s.repo.FindByID(ctx, holidayID)
+		if err != nil && !db.IsErrNotFound(err) {
+			logrus.Error("Failed to check existing holiday by id %w", err)
+			return fmt.Errorf("Failed to check existing holiday by id: %w", err)
+		}
+
+		if db.IsErrNotFound(err) {
+			logrus.Error("Holiday not found")
+			return status.Holiday().NotFoundHoliday
+		}
+
+		hasProject := false
+		for _, project := range holiday.ProjectsID {
+			if project == projectID {
+				hasProject = true
+			}
+		}
+		if !hasProject {
+			logrus.Errorf("Project didn't have this holiday")
+			return status.Holiday().NotFoundProject
+		}
 		if err := s.repo.UpdateProjectsID(ctx, holidayID, projectID, false); err != nil {
 			logrus.Error("Database error, Failed to remove project from holiday %w", err)
 			return fmt.Errorf("Failed to remove project from holiday: %w", err)

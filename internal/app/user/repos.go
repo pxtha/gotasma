@@ -34,6 +34,12 @@ func (r *MongoDBRepository) Create(ctx context.Context, user *types.User) (strin
 	return user.UserID, nil
 }
 
+func (r *MongoDBRepository) Delete(ctx context.Context, id string) error {
+	s := r.session.Clone()
+	defer s.Close()
+	return r.collection(s).Remove(bson.M{"user_id": id})
+}
+
 func (r *MongoDBRepository) FindByEmail(ctx context.Context, email string) (*types.User, error) {
 	selector := bson.M{"email": email}
 	s := r.session.Clone()
@@ -79,10 +85,42 @@ func (r *MongoDBRepository) FindByID(ctx context.Context, UserID string) (*types
 	return users, nil
 }
 
-func (r *MongoDBRepository) Delete(ctx context.Context, id string) error {
+func (r *MongoDBRepository) UpdateProjectsID(ctx context.Context, userID string, projectID string, addToSet bool) error {
+
+	s := r.session.Clone()
+	defer s.Clone()
+	//add data to array if not exist
+	action := "$addToSet"
+	data := bson.M{
+		"projects_id": projectID,
+	}
+	//pull data out of array
+	if !addToSet {
+		action = "$pull"
+		data = bson.M{
+			"projects_id": projectID,
+		}
+	}
+
+	return r.collection(s).Update(bson.M{"user_id": userID}, bson.M{
+		"$set": bson.M{
+			"updated_at": time.Now(),
+		},
+		action: data,
+	},
+	)
+}
+
+func (r *MongoDBRepository) FindByProjectID(ctx context.Context, projectID string) ([]*types.User, error) {
+
+	selector := bson.M{"projects_id": projectID}
 	s := r.session.Clone()
 	defer s.Close()
-	return r.collection(s).Remove(bson.M{"user_id": id})
+	var users []*types.User
+	if err := r.collection(s).Find(selector).All(&users); err != nil {
+		return nil, err
+	}
+	return users, nil
 }
 
 func (r *MongoDBRepository) collection(s *mgo.Session) *mgo.Collection {

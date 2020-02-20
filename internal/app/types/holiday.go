@@ -3,6 +3,7 @@ package types
 import "time"
 
 type (
+	//TODO type of holiday, if type: public => apply to all project
 	Holiday struct {
 		Title      string    `json:"title,omitempty" bson:"title,omitempty"`
 		HolidayID  string    `json:"holiday_id,omitempty" bson:"holiday_id,omitempty"`
@@ -16,12 +17,12 @@ type (
 	}
 
 	HolidayInfo struct {
-		Title      string    `json:"title,omitempty" `
-		Start      int       `json:"start,omitempty" `
-		End        int       `json:"end,omitempty" `
-		Duration   int       `json:"duration,omitempty"`
-		UpdateAt   time.Time `json:"updated_at,omitempty" `
-		ProjectsID []string  `json:"projects_id,omitempty" bson:"projects_id"`
+		HolidayID string    `json:"holiday_id,omitempty"`
+		Title     string    `json:"title,omitempty" `
+		Start     int       `json:"start,omitempty" `
+		End       int       `json:"end,omitempty" `
+		Duration  int       `json:"duration,omitempty"`
+		UpdateAt  time.Time `json:"updated_at,omitempty" `
 	}
 
 	HolidayRequest struct {

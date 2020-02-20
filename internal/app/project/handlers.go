@@ -17,22 +17,22 @@ import (
 type (
 	service interface {
 		Create(ctx context.Context, req *types.CreateProjectRequest) (*types.Project, error)
-
-		//Client use SAVE api, sent all tasks of project, only update tasks has new update_at time ==> Client has to take care of task info strictly
 		Save(ctx context.Context, id string, req *types.SaveProject) (*types.ProjectHistory, error)
 		Update(ctx context.Context, id string, req *types.UpdateProject) (*types.ProjectHistory, error)
 		Delete(ctx context.Context, id string) error
 
 		FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, error)
 		FindByID(context.Context, string) (*types.Project, error)
+		FindAllDevs(context.Context, string) ([]*types.UserInfo, error)
+		FindAllHolidays(context.Context, string) ([]*types.HolidayInfo, error)
 
-		//TODO: check userID exist
-		AddDevs(ctx context.Context, userID []string, projectID string) ([]string, error)
-		RemoveDev(ctx context.Context, userID string, projectID string) error
+		//User services
+		AddDev(ctx context.Context, req *types.AddUsersRequest, projectID string) (string, error)
+		RemoveDev(ctx context.Context, req *types.RemoveUserRequest, projectID string) (string, error)
 
 		//Holiday services
-		AddHoliday(ctx context.Context, holidayID string, projectID string) (string, error)
-		RemoveHoliday(ctx context.Context, holidayID string, projectID string) (string, error)
+		AddHoliday(ctx context.Context, req *types.AddHolidayRequest, projectID string) (string, error)
+		RemoveHoliday(ctx context.Context, req *types.RemoveHolidayRequest, projectID string) (string, error)
 	}
 	Handler struct {
 		srv service
@@ -188,7 +188,8 @@ func (h *Handler) FindByID(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *Handler) AddDevs(w http.ResponseWriter, r *http.Request) {
+//Manage devs of project
+func (h *Handler) AddDev(w http.ResponseWriter, r *http.Request) {
 	projectID := mux.Vars(r)["project_id"]
 
 	if projectID == "" {
@@ -207,7 +208,7 @@ func (h *Handler) AddDevs(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	assignedUser, err := h.srv.AddDevs(r.Context(), req.UserIDs, projectID)
+	assignedUser, err := h.srv.AddDev(r.Context(), &req, projectID)
 	if err != nil {
 		logrus.Errorf("Fail to assign project to user due to %v: user: %v", err, assignedUser)
 		respond.Error(w, err, http.StatusInternalServerError)
@@ -236,16 +237,40 @@ func (h *Handler) RemoveDev(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if err := h.srv.RemoveDev(r.Context(), req.UserID, projectID); err != nil {
+	user, err := h.srv.RemoveDev(r.Context(), &req, projectID)
+	if err != nil {
 		logrus.Errorf("Fail to remove user from project due to %v", err)
 		respond.Error(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	respond.JSON(w, http.StatusOK, types.BaseResponse{
-		Data: req,
+		Data: user,
 	})
 }
+
+func (h *Handler) FindAllDevs(w http.ResponseWriter, r *http.Request) {
+	projectID := mux.Vars(r)["project_id"]
+	if projectID == "" {
+		logrus.Errorf("Fail to get devs of project due to empty project ID")
+		respond.Error(w, fmt.Errorf("Project ID is not valid"), http.StatusBadRequest)
+		return
+	}
+
+	devs, err := h.srv.FindAllDevs(r.Context(), projectID)
+
+	if err != nil {
+		logrus.Errorf("Fail to get devs from project due to %v", err)
+		respond.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	respond.JSON(w, http.StatusOK, types.BaseResponse{
+		Data: devs,
+	})
+}
+
+//Manage holiday of project
 func (h *Handler) AddHoliday(w http.ResponseWriter, r *http.Request) {
 	projectID := mux.Vars(r)["project_id"]
 
@@ -265,7 +290,7 @@ func (h *Handler) AddHoliday(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	holiday, err := h.srv.AddHoliday(r.Context(), req.UserID, projectID)
+	holiday, err := h.srv.AddHoliday(r.Context(), &req, projectID)
 	if err != nil {
 		logrus.Errorf("Fail to assign holiday to project due to %v", err)
 		respond.Error(w, err, http.StatusInternalServerError)
@@ -294,7 +319,7 @@ func (h *Handler) RemoveHoliday(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	holiday, err := h.srv.RemoveHoliday(r.Context(), req.UserID, projectID)
+	holiday, err := h.srv.RemoveHoliday(r.Context(), &req, projectID)
 	if err != nil {
 		logrus.Errorf("Fail to remove holiday from project due to %v", err)
 		respond.Error(w, err, http.StatusInternalServerError)
@@ -302,5 +327,26 @@ func (h *Handler) RemoveHoliday(w http.ResponseWriter, r *http.Request) {
 	}
 	respond.JSON(w, http.StatusOK, types.BaseResponse{
 		Data: holiday,
+	})
+}
+
+func (h *Handler) FindAllHolidays(w http.ResponseWriter, r *http.Request) {
+	projectID := mux.Vars(r)["project_id"]
+	if projectID == "" {
+		logrus.Errorf("Fail to get devs of project due to empty project ID")
+		respond.Error(w, fmt.Errorf("Project ID is not valid"), http.StatusBadRequest)
+		return
+	}
+
+	holidays, err := h.srv.FindAllHolidays(r.Context(), projectID)
+
+	if err != nil {
+		logrus.Errorf("Fail to get devs from project due to %v", err)
+		respond.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	respond.JSON(w, http.StatusOK, types.BaseResponse{
+		Data: holidays,
 	})
 }
