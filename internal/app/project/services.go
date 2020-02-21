@@ -52,6 +52,7 @@ type (
 		FindByProjectID(ctx context.Context, projectID string) ([]*types.Task, error)
 		Update(ctx context.Context, projectID string, req *types.Task) error
 		Create(ctx context.Context, projectID string, req *types.Task) (*types.Task, error)
+		Delete(ctx context.Context, id string) error
 	}
 
 	Service struct {
@@ -108,7 +109,6 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 	}
 
 	for _, newtask := range req.Tasks {
-
 		exist := false
 		if err := validator.Validate(newtask); err != nil {
 			logrus.Errorf("Fail to update project due to invalid req, %w", err)
@@ -121,6 +121,8 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 			if newtask.TaskID == oldtask.TaskID {
 				if newtask.UpdateAt != oldtask.UpdateAt {
 					//update this task
+					//History on elastic search
+					//TODO: add context: user info
 					if err := s.task.Update(ctx, id, newtask); err != nil {
 						logrus.Errorf("Fail to update tasks due to, %w", err)
 						return nil, fmt.Errorf("Fail to update  tasks due to, %w", err)
@@ -132,6 +134,8 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 		}
 		//this task not exist in db -> create new task
 		if !exist {
+			//History on elastic search
+			//TODO: add context: user info
 			_, err := s.task.Create(ctx, id, newtask)
 			if err != nil {
 				return nil, fmt.Errorf("Fail to create new tasks due to, %w", err)
@@ -139,20 +143,29 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 		}
 	}
 
-	// if err = s.mongo.Save(ctx, id, req); err != nil {
-	// 	logrus.Errorf("failed to update project: %v", err)
-	// 	return nil, fmt.Errorf("failed to update project, %w", err)
-	// }
-
-	//Just update tasks field of project
-	//VueJS will do all the validation for data comes in
-	//So that user can edit tasks as long as they want, only save tasks when user use update task API
+	for _, oldtask := range dbTasks {
+		deleted := true
+		for _, newtask := range req.Tasks {
+			if newtask.TaskID == oldtask.TaskID {
+				deleted = false
+				break
+			}
+		}
+		//this task not exist in in newtask -> delete task
+		if deleted {
+			//History on elastic search
+			//TODO: add context: user info
+			if err := s.task.Delete(ctx, oldtask.TaskID); err != nil {
+				logrus.Errorf("Fail to delete tasks due to, %w", err)
+				return nil, fmt.Errorf("Fail to delete  tasks due to, %w", err)
+			}
+		}
+	}
 	//History on elastic search
 	//TODO: add context: user info
 	history := &types.ProjectHistory{
 		//news info
 		UpdateAt: time.Now(),
-
 		//old
 		ProjectID: project.ProjectID,
 		Desc:      project.Desc,
@@ -165,7 +178,6 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 
 	//TODO calculate workload
 	err = s.elastic.IndexNewHistory(ctx, history)
-
 	if err != nil {
 		//TODO retry if fail
 		//OR remove Updated info

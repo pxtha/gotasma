@@ -9,6 +9,7 @@ type (
 		ProjectID        string    `json:"project_id,omitempty" bson:"project_id" validate:"required"`
 		Type             string    `json:"type,omitempty" bson:"type" validate:"required"`
 		Parent           string    `json:"parent,omitempty" bson:"parent" validate:"required"`
+		CreaterID        string    `json:"creater_id,omitempty" bson:"creater_id"`
 		Effort           int       `json:"effort,omitempty" bson:"effort" validate:"required"`
 		Start            int       `json:"start,omitempty" bson:"start" validate:"gt=1262304000000" validate:"required"`
 		Duration         int       `json:"duration,omitempty" bson:"duration" validate:"required"`
@@ -18,5 +19,6 @@ type (
 		Children         []string  `json:"children,omitempty" bson:"children" validate:"required"`
 		AllChildren      []string  `json:"all_children,omitempty" bson:"all_children" validate:"required"`
 		UpdateAt         time.Time `json:"updated_at,omitempty" bson:"updated_at" validate:"required"`
+		CreatedAt        time.Time `json:"created_at,omitempty" bson:"created_at"`
 	}
 )

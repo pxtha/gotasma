@@ -37,11 +37,10 @@ func (r *MongoDBRepository) Create(ctx context.Context, task *types.Task) error 
 
 	s := r.session.Clone()
 	defer s.Clone()
-
-	task.UpdateAt = time.Now()
+	task.CreatedAt = time.Now()
+	task.UpdateAt = task.CreatedAt
 
 	return r.collection(s).Insert(task)
-
 }
 
 func (r *MongoDBRepository) Update(ctx context.Context, projectID string, req *types.Task) error {
@@ -67,6 +66,15 @@ func (r *MongoDBRepository) Update(ctx context.Context, projectID string, req *t
 	},
 	)
 
+}
+
+func (r *MongoDBRepository) Delete(ctx context.Context, id string) error {
+	s := r.session.Clone()
+	defer s.Close()
+	if err := r.collection(s).Remove(bson.M{"task_id": id}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *MongoDBRepository) collection(s *mgo.Session) *mgo.Collection {

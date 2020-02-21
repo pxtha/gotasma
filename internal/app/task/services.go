@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gotasma/internal/app/auth"
 	"github.com/gotasma/internal/app/types"
 	"github.com/gotasma/internal/pkg/uuid"
 	"github.com/gotasma/internal/pkg/validator"
@@ -13,7 +14,7 @@ import (
 type (
 	mongoRepository interface {
 		Create(context.Context, *types.Task) error
-		// Delete(ctx context.Context, id string) error
+		Delete(ctx context.Context, id string) error
 		Update(ctx context.Context, projectID string, req *types.Task) error
 
 		FindByProjectID(ctx context.Context, projectID string) ([]*types.Task, error)
@@ -50,10 +51,11 @@ func (s *Service) Create(ctx context.Context, projectID string, req *types.Task)
 		logrus.Errorf("Fail to create tasks due to invalid req, %w", err)
 		return nil, err
 	}
-
+	user := auth.FromContext(ctx)
 	//Create new project
 	tasks := &types.Task{
 		ProjectID:        projectID,
+		CreaterID:        user.UserID,
 		AllChildren:      req.AllChildren,
 		Children:         req.Children,
 		Duration:         req.Duration,
@@ -84,4 +86,15 @@ func (s *Service) Update(ctx context.Context, projectID string, req *types.Task)
 	}
 
 	return s.repo.Update(ctx, projectID, req)
+}
+
+func (s *Service) Delete(ctx context.Context, id string) error {
+
+	if err := s.repo.Delete(ctx, id); err != nil {
+		logrus.Errorf("Fail to delete task due to %v", err)
+		return err
+	}
+
+	//TODO: delete task id from devs
+	return nil
 }
