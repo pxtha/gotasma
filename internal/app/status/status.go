@@ -28,6 +28,14 @@ type (
 		NotInProject     Status `yaml:"not_in_project"`
 		NotFoundDev      Status `yaml:"not_found_dev"`
 	}
+
+	TaskStatus struct {
+		InvalidTask    Status `yaml:"invalid_task"`
+		DuplicatedTask Status `yaml:"duplicated_task"`
+		NotFoundTask   Status `yaml:"not_found_task"`
+		NotInProject   Status `yaml:"not_in_project"`
+	}
+
 	HolidayStatus struct {
 		InvalidHoliday    Status `yaml:"invalid_holiday"`
 		DuplicatedHoliday Status `yaml:"duplicated_holiday"`
@@ -45,13 +53,17 @@ type (
 		NotFoundUser     Status `yaml:"not_found_user"`
 		NotFoundProject  Status `yaml:"not_found_project"`
 		AlreadyInProject Status `yaml:"already_in_project"`
+		AlreadyInTask    Status `yaml:"already_in_task"`
 	}
+
 	AuthStatus struct {
 		InvalidUserPassword Status `yaml:"invalid_user_password"`
 	}
+
 	SercurityStatus struct {
 		InvalidAction Status `yaml:"invalid_action"`
 	}
+
 	statuses struct {
 		Gen       GenStatus
 		User      UserStatus
@@ -60,6 +72,7 @@ type (
 		Sercurity SercurityStatus
 		Holiday   HolidayStatus
 		Project   ProjectStatus
+		Task      TaskStatus
 	}
 )
 
@@ -126,4 +139,8 @@ func Holiday() HolidayStatus {
 
 func Project() ProjectStatus {
 	return load().Project
+}
+
+func Task() TaskStatus {
+	return load().Task
 }

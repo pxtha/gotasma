@@ -33,6 +33,18 @@ func (r *MongoDBRepository) FindByProjectID(ctx context.Context, projectID strin
 	return tasks, nil
 }
 
+func (r *MongoDBRepository) FindByID(ctx context.Context, id string) (*types.Task, error) {
+
+	selector := bson.M{"task_id": id}
+	s := r.session.Clone()
+	defer s.Close()
+	var task *types.Task
+	if err := r.collection(s).Find(selector).One(&task); err != nil {
+		return nil, err
+	}
+	return task, nil
+}
+
 func (r *MongoDBRepository) Create(ctx context.Context, task *types.Task) error {
 
 	s := r.session.Clone()

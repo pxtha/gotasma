@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gotasma/internal/app/auth"
+	"github.com/gotasma/internal/app/status"
 	"github.com/gotasma/internal/app/types"
 	"github.com/gotasma/internal/pkg/uuid"
 	"github.com/gotasma/internal/pkg/validator"
@@ -18,7 +19,7 @@ type (
 		Update(ctx context.Context, projectID string, req *types.Task) error
 
 		FindByProjectID(ctx context.Context, projectID string) ([]*types.Task, error)
-		// FindByID(ctx context.Context, id string) (*types.Task, error)
+		FindByID(ctx context.Context, id string) (*types.Task, error)
 	}
 
 	PolicyService interface {
@@ -45,14 +46,21 @@ func (s *Service) FindByProjectID(ctx context.Context, projectID string) ([]*typ
 	return tasks, err
 }
 
+func (s *Service) FindByID(ctx context.Context, id string) (*types.Task, error) {
+
+	task, err := s.repo.FindByID(ctx, id)
+
+	return task, err
+}
+
 func (s *Service) Create(ctx context.Context, projectID string, req *types.Task) (*types.Task, error) {
 
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to create tasks due to invalid req, %w", err)
-		return nil, err
+		return nil, fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
 	}
 	user := auth.FromContext(ctx)
-	//Create new project
+	// Create new project
 	tasks := &types.Task{
 		ProjectID:        projectID,
 		CreaterID:        user.UserID,
@@ -79,10 +87,10 @@ func (s *Service) Create(ctx context.Context, projectID string, req *types.Task)
 }
 
 func (s *Service) Update(ctx context.Context, projectID string, req *types.Task) error {
-	//Validate [input]
+	// Validate [input]
 	if err := validator.Validate(req); err != nil {
 		logrus.Error("Failed to validate input update task %v", err)
-		return err
+		return fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
 	}
 
 	return s.repo.Update(ctx, projectID, req)

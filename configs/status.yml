@@ -41,6 +41,10 @@ user:
     code: 1330
     status: 400
     message: "Project already had this user"
+  already_in_task:
+    code: 1340
+    status: 400
+    message: "Task already assign to this user"
 holiday:
   invalid_holiday:
     code: 1450
@@ -74,9 +78,9 @@ sercurity:
     message: "You shouldn't do this!"
 project:
   duplicated_project:
-    code: 1500
-    status: 400
-    message: "Duplicated project"
+      code: 1500
+      status: 400
+      message: "Duplicated project"
   already_in_project:
     code: 1530
     status: 400
@@ -93,3 +97,20 @@ project:
     code: 1540
     status: 400
     message: "Dev not found in project"
+task:
+  duplicated_task:
+    code: 1600
+    status: 400
+    message: "Duplicated task"
+  not_found_task:
+    code: 1610
+    status: 400
+    message: "Task not found"
+  invalid_task:
+    code: 1620
+    status: 400
+    message: "Invalid task info"
+  not_in_project:
+    code: 1630
+    status: 400
+    message: "Task not in this project"

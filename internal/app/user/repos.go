@@ -91,22 +91,38 @@ func (r *MongoDBRepository) UpdateProjectsID(ctx context.Context, userID string,
 	defer s.Clone()
 	//add data to array if not exist
 	action := "$addToSet"
-	data := bson.M{
-		"projects_id": projectID,
-	}
 	//pull data out of array
 	if !addToSet {
 		action = "$pull"
-		data = bson.M{
-			"projects_id": projectID,
-		}
 	}
 
 	return r.collection(s).Update(bson.M{"user_id": userID}, bson.M{
 		"$set": bson.M{
 			"updated_at": time.Now(),
 		},
-		action: data,
+		action: bson.M{
+			"projects_id": projectID,
+		},
+	},
+	)
+}
+func (r *MongoDBRepository) UpdateTasksID(ctx context.Context, userID string, taskID string, addToSet bool) error {
+
+	s := r.session.Clone()
+	defer s.Clone()
+	//add data to array if not exist
+	action := "$addToSet"
+	//pull data out of array
+	if !addToSet {
+		action = "$pull"
+	}
+	return r.collection(s).Update(bson.M{"user_id": userID}, bson.M{
+		"$set": bson.M{
+			"updated_at": time.Now(),
+		},
+		action: bson.M{
+			"tasks_id": taskID,
+		},
 	},
 	)
 }

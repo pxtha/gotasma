@@ -21,18 +21,23 @@ type (
 		Update(ctx context.Context, id string, req *types.UpdateProject) (*types.ProjectHistory, error)
 		Delete(ctx context.Context, id string) error
 
-		FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, error)
 		FindByID(context.Context, string) (*types.Project, error)
-		FindAllDevs(context.Context, string) ([]*types.UserInfo, error)
-		FindAllHolidays(context.Context, string) ([]*types.HolidayInfo, error)
+
+		FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, error)
 
 		//User services
 		AddDev(ctx context.Context, req *types.AddUsersRequest, projectID string) (string, error)
 		RemoveDev(ctx context.Context, req *types.RemoveUserRequest, projectID string) (string, error)
+		FindAllDevs(context.Context, string) ([]*types.UserInfo, error)
 
 		//Holiday services
 		AddHoliday(ctx context.Context, req *types.AddHolidayRequest, projectID string) (string, error)
 		RemoveHoliday(ctx context.Context, req *types.RemoveHolidayRequest, projectID string) (string, error)
+		FindAllHolidays(context.Context, string) ([]*types.HolidayInfo, error)
+
+		//Tasks service
+		FindAllTasks(context.Context, string) ([]*types.Task, error)
+		AssignDev(ctx context.Context, projectID string, req *types.AssignDev) (*types.AssignDev, error)
 	}
 	Handler struct {
 		srv service
@@ -270,7 +275,7 @@ func (h *Handler) FindAllDevs(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-//Manage holiday of project
+//Manage holidays of project
 func (h *Handler) AddHoliday(w http.ResponseWriter, r *http.Request) {
 	projectID := mux.Vars(r)["project_id"]
 
@@ -283,7 +288,7 @@ func (h *Handler) AddHoliday(w http.ResponseWriter, r *http.Request) {
 	var req types.AddHolidayRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logrus.Errorf("Fail to pasre JSON to Add Users Request struct, %v", err)
+		logrus.Errorf("Fail to pasre JSON to Add holiday Request struct, %v", err)
 		respond.Error(w, err, http.StatusBadRequest)
 		return
 	}
@@ -306,14 +311,14 @@ func (h *Handler) RemoveHoliday(w http.ResponseWriter, r *http.Request) {
 
 	projectID := mux.Vars(r)["project_id"]
 	if projectID == "" {
-		logrus.Errorf("Fail to remove project to user due to empty project ID")
+		logrus.Errorf("Fail to remove holiday from user due to empty project ID")
 		respond.Error(w, fmt.Errorf("Project ID is not valid"), http.StatusBadRequest)
 		return
 	}
 
 	var req types.RemoveHolidayRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logrus.Errorf("Fail to pasre JSON to Remove Users Request struct, %v", err)
+		logrus.Errorf("Fail to pasre JSON to Remove holiday Request struct, %v", err)
 		respond.Error(w, err, http.StatusBadRequest)
 		return
 	}
@@ -333,7 +338,7 @@ func (h *Handler) RemoveHoliday(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) FindAllHolidays(w http.ResponseWriter, r *http.Request) {
 	projectID := mux.Vars(r)["project_id"]
 	if projectID == "" {
-		logrus.Errorf("Fail to get devs of project due to empty project ID")
+		logrus.Errorf("Fail to get holidays of project due to empty project ID")
 		respond.Error(w, fmt.Errorf("Project ID is not valid"), http.StatusBadRequest)
 		return
 	}
@@ -341,12 +346,65 @@ func (h *Handler) FindAllHolidays(w http.ResponseWriter, r *http.Request) {
 	holidays, err := h.srv.FindAllHolidays(r.Context(), projectID)
 
 	if err != nil {
-		logrus.Errorf("Fail to get devs from project due to %v", err)
+		logrus.Errorf("Fail to holidays devs from project due to %v", err)
 		respond.Error(w, err, http.StatusBadRequest)
 		return
 	}
 
 	respond.JSON(w, http.StatusOK, types.BaseResponse{
 		Data: holidays,
+	})
+}
+
+//Manage tasks of project
+func (h *Handler) FindAllTasks(w http.ResponseWriter, r *http.Request) {
+	projectID := mux.Vars(r)["project_id"]
+	if projectID == "" {
+		logrus.Errorf("Fail to get tasks of project due to empty project ID")
+		respond.Error(w, fmt.Errorf("Project ID is not valid"), http.StatusBadRequest)
+		return
+	}
+
+	tasks, err := h.srv.FindAllTasks(r.Context(), projectID)
+
+	if err != nil {
+		logrus.Errorf("Fail to get tasks from project due to %v", err)
+		respond.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	respond.JSON(w, http.StatusOK, types.BaseResponse{
+		Data: tasks,
+	})
+}
+
+func (h *Handler) AssignDev(w http.ResponseWriter, r *http.Request) {
+	projectID := mux.Vars(r)["project_id"]
+
+	if projectID == "" {
+		logrus.Errorf("Fail to assign task to user due to empty project ID")
+		respond.Error(w, fmt.Errorf("Project ID is not valid"), http.StatusBadRequest)
+		return
+	}
+
+	var req types.AssignDev
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logrus.Errorf("Fail to pasre JSON to assign task Request struct, %v", err)
+		respond.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	defer r.Body.Close()
+
+	task, err := h.srv.AssignDev(r.Context(), projectID, &req)
+	if err != nil {
+		logrus.Errorf("Fail to assign task to project due to %v", err)
+		respond.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	respond.JSON(w, http.StatusOK, types.BaseResponse{
+		Data: task,
 	})
 }

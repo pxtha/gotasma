@@ -19,6 +19,7 @@ services:
       - discovery.type=single-node
     volumes:
       - ../data:/usr/share/elasticsearch/data
+    restart: always
 
   kibana:
     image: kibana:7.6.0
@@ -26,7 +27,7 @@ services:
       - 5601:5601
     environment:
       - discovery.type=single-node  
-
+    restart: always
 
   backend:
     image: realize:${REALIZE_VERSION}
@@ -62,9 +63,8 @@ services:
       - ../../configs:/home/praslar/Code/Workspace/src/github.com/gotasma/configs
       - ../scripts:/scripts
     working_dir: /home/praslar/Code/Workspace/src/github.com/gotasma
-    entrypoint: [ "sh", "-c", "/scripts/wait-for.sh mongodb:27017 --timeout=20 -- realize start" ]
+    entrypoint: [ "sh", "-c", "/scripts/wait-for.sh elasticsearch:9200 -q --timeout=30 -- realize start" ]
     depends_on:
       - mongodb
       - elasticsearch
-      - kibana
     restart: always

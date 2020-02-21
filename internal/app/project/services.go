@@ -37,9 +37,12 @@ type (
 	}
 
 	UserService interface {
+		// Projects
+		AddProject(ctx context.Context, userID string, projectID string) error
 		RemoveProject(ctx context.Context, userID string, projectID string) error
-		AssignProject(ctx context.Context, userID string, projectID string) error
 		FindByProjectID(ctx context.Context, projectID string) ([]*types.UserInfo, error)
+		// Tasks
+		AddTask(ctx context.Context, projectID string, req *types.AssignDev) error
 	}
 
 	HolidayService interface {
@@ -50,6 +53,8 @@ type (
 
 	TaskService interface {
 		FindByProjectID(ctx context.Context, projectID string) ([]*types.Task, error)
+		FindByID(ctx context.Context, id string) (*types.Task, error)
+
 		Update(ctx context.Context, projectID string, req *types.Task) error
 		Create(ctx context.Context, projectID string, req *types.Task) (*types.Task, error)
 		Delete(ctx context.Context, id string) error
@@ -76,17 +81,17 @@ func New(mongo mongoRepository, policy PolicyService, elastic elasticRepository,
 	}
 }
 
-//Save all tasks, only update tasks has new update time, TODO: elasticsearch HISTORY
+// Save all tasks, only update tasks has new update time, TODO: elasticsearch HISTORY
 func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (*types.ProjectHistory, error) {
 
-	//only PM can create Project
+	// only PM can create Project
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
 		return nil, err
 	}
-	//validate incoming data
+	// validate incoming data
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to update project due to invalid req, %w", err)
-		return nil, err
+		return nil, fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
 	}
 
 	project, err := s.mongo.FindByProjectID(ctx, id)
@@ -101,7 +106,7 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 		return nil, status.Project().NotFoundProject
 	}
 
-	//Get tasks from db: oldtask := s.mongo.getbyprojectid()
+	// Get tasks from db: oldtask := s.mongo.getbyprojectid()
 	dbTasks, err := s.task.FindByProjectID(ctx, project.ProjectID)
 	if err != nil {
 		logrus.Errorf("Database error: failed to get old tasks of project by project_id: %v", err)
@@ -112,7 +117,7 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 		exist := false
 		if err := validator.Validate(newtask); err != nil {
 			logrus.Errorf("Fail to update project due to invalid req, %w", err)
-			return nil, err
+			return nil, fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
 		}
 
 		// For sync data
@@ -132,7 +137,7 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 				break
 			}
 		}
-		//this task not exist in db -> create new task
+		// This task not exist in db -> create new task
 		if !exist {
 			//History on elastic search
 			//TODO: add context: user info
@@ -161,12 +166,12 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 			}
 		}
 	}
-	//History on elastic search
-	//TODO: add context: user info
+	// History on elastic search
+	// TODO: add context: user info
 	history := &types.ProjectHistory{
-		//news info
+		// news info
 		UpdateAt: time.Now(),
-		//old
+		// old
 		ProjectID: project.ProjectID,
 		Desc:      project.Desc,
 		CreatedAt: project.CreatedAt,
@@ -176,7 +181,7 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 		Action:    "Save project",
 	}
 
-	//TODO calculate workload
+	// TODO calculate workload
 	err = s.elastic.IndexNewHistory(ctx, history)
 	if err != nil {
 		//TODO retry if fail
@@ -197,7 +202,7 @@ func (s *Service) Update(ctx context.Context, id string, req *types.UpdateProjec
 	//validate incoming data
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to update project due to invalid req, %w", err)
-		return nil, err
+		return nil, fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
 	}
 
 	//Check project existing
@@ -258,7 +263,7 @@ func (s *Service) Create(ctx context.Context, req *types.CreateProjectRequest) (
 
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to create project due to invalid req, %w", err)
-		return nil, err
+		return nil, fmt.Errorf(err.Error()+" err: %w", status.Gen().BadRequest)
 	}
 
 	//Check duplicate project's name of this PM
@@ -379,7 +384,7 @@ func (s *Service) FindAllProjects(ctx context.Context) ([]*types.ProjectInfo, er
 	return info, err
 }
 
-//AddHoliday Mange holiday of project
+//Mange holiday of project
 func (s *Service) AddHoliday(ctx context.Context, req *types.AddHolidayRequest, projectID string) (string, error) {
 
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
@@ -388,7 +393,7 @@ func (s *Service) AddHoliday(ctx context.Context, req *types.AddHolidayRequest, 
 
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to add holiday to project due to invalid req, %w", err)
-		return "", err
+		return "", fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
 	}
 
 	// Check project exist
@@ -412,7 +417,6 @@ func (s *Service) AddHoliday(ctx context.Context, req *types.AddHolidayRequest, 
 	return req.HolidayID, nil
 }
 
-//RemoveHoliday Mange holiday of project
 func (s *Service) RemoveHoliday(ctx context.Context, req *types.RemoveHolidayRequest, projectID string) (string, error) {
 
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
@@ -421,7 +425,7 @@ func (s *Service) RemoveHoliday(ctx context.Context, req *types.RemoveHolidayReq
 
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to remove holiday from project due to invalid req, %w", err)
-		return "", err
+		return "", fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
 	}
 
 	// Check project exist
@@ -445,7 +449,6 @@ func (s *Service) RemoveHoliday(ctx context.Context, req *types.RemoveHolidayReq
 	return req.HolidayID, nil
 }
 
-//FindAllHolidays Mange holiday of project
 func (s *Service) FindAllHolidays(ctx context.Context, projectID string) ([]*types.HolidayInfo, error) {
 
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
@@ -474,7 +477,7 @@ func (s *Service) FindAllHolidays(ctx context.Context, projectID string) ([]*typ
 	return info, nil
 }
 
-//AddDev Mange devs of project
+//Mange devs of project
 func (s *Service) AddDev(ctx context.Context, req *types.AddUsersRequest, projectID string) (string, error) {
 
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
@@ -483,7 +486,7 @@ func (s *Service) AddDev(ctx context.Context, req *types.AddUsersRequest, projec
 
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to add user to project due to invalid req, %w", err)
-		return "", err
+		return "", fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
 	}
 
 	// Check project exist
@@ -504,15 +507,14 @@ func (s *Service) AddDev(ctx context.Context, req *types.AddUsersRequest, projec
 		return "", status.Project().AlreadyInProject
 	}
 
-	if err := s.user.AssignProject(ctx, req.UserID, projectID); err != nil {
-		logrus.Errorf("Failed to update devs ID in project info %v", err)
+	if err := s.user.AddProject(ctx, req.UserID, projectID); err != nil {
+		logrus.Errorf("Failed to update projects_ID in user info %v", err)
 		return "", err
 	}
 
 	return req.UserID, nil
 }
 
-//RemoveDev  Mange devs of project
 func (s *Service) RemoveDev(ctx context.Context, req *types.RemoveUserRequest, projectID string) (string, error) {
 
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
@@ -521,7 +523,7 @@ func (s *Service) RemoveDev(ctx context.Context, req *types.RemoveUserRequest, p
 
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to remove user from project due to invalid req, %w", err)
-		return "", err
+		return "", fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
 	}
 
 	// Check project exist
@@ -540,14 +542,64 @@ func (s *Service) RemoveDev(ctx context.Context, req *types.RemoveUserRequest, p
 	}
 
 	if err := s.user.RemoveProject(ctx, req.UserID, projectID); err != nil {
-		logrus.Errorf("Fail to delete project due to %v", err)
+		logrus.Errorf("Fail to update projects_ID in user info due to %v", err)
 		return "", err
 	}
 
 	return req.UserID, nil
 }
 
-//FindAllDevs  Mange devs of project
+func (s *Service) AssignDev(ctx context.Context, projectID string, req *types.AssignDev) (*types.AssignDev, error) {
+
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return nil, err
+	}
+
+	if err := validator.Validate(req); err != nil {
+		logrus.Errorf("Fail to add task to project due to invalid req, %w", err)
+		return nil, fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
+	}
+
+	// Check project exist
+	project, err := s.mongo.FindByProjectID(ctx, projectID)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Errorf("failed to check existing project by ID: %v", err)
+		return nil, fmt.Errorf("failed to check existing project by ID: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Error("Project doesn't exist")
+		return nil, status.Project().NotFoundProject
+	}
+
+	// Validate task
+	task, err := s.task.FindByID(ctx, req.TaskID)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Errorf("failed to check existing task by ID: %v", err)
+		return nil, fmt.Errorf("failed to check existing task by ID: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Error("Task doesn't exist")
+		return nil, status.Task().NotFoundTask
+	}
+
+	if task.ProjectID != project.ProjectID {
+		logrus.Error("Task not in project")
+		return nil, status.Task().NotInProject
+	}
+
+	// Validate dev
+	if err := s.user.AddTask(ctx, projectID, req); err != nil {
+		logrus.Errorf("Failed to update tasks_id in user info %v", err)
+		return nil, err
+	}
+
+	return req, nil
+}
+
 func (s *Service) FindAllDevs(ctx context.Context, projectID string) ([]*types.UserInfo, error) {
 
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
@@ -572,6 +624,35 @@ func (s *Service) FindAllDevs(ctx context.Context, projectID string) ([]*types.U
 	if err != nil {
 		logrus.Errorf("Fail to get devs of project: %v", err)
 		return nil, fmt.Errorf("failed to get devs of project: %w", err)
+	}
+	return info, nil
+}
+
+//Manage tasks
+func (s *Service) FindAllTasks(ctx context.Context, projectID string) ([]*types.Task, error) {
+
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return nil, err
+	}
+	// Check project exist
+	_, err := s.mongo.FindByProjectID(ctx, projectID)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Errorf("failed to check existing project by ID: %v", err)
+		return nil, fmt.Errorf("failed to check existing project by ID: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Errorf("Project doesn't exist")
+		return nil, status.Project().NotFoundProject
+	}
+
+	var info []*types.Task
+
+	info, err = s.task.FindByProjectID(ctx, projectID)
+	if err != nil {
+		logrus.Errorf("Fail to get tasks of project: %v", err)
+		return nil, fmt.Errorf("failed to get tasks of project: %w", err)
 	}
 	return info, nil
 }

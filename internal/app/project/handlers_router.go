@@ -85,5 +85,19 @@ func (h *Handler) Routes() []router.Route {
 			Handler:     h.FindAllHolidays,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
+
+		//Manage tasks of project
+		{
+			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/tasks",
+			Method:      http.MethodGet,
+			Handler:     h.FindAllTasks,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+		},
+		{
+			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/tasks",
+			Method:      http.MethodPost,
+			Handler:     h.AssignDev,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+		},
 	}
 }

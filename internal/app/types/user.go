@@ -22,6 +22,7 @@ type (
 		LastName   string    `json:"last_name,omitempty" bson:"last_name,omitempty"`
 		Role       Role      `json:"role" bson:"role"`
 		ProjectsID []string  `json:"projects_id,omitempty" bson:"projects_id"`
+		TasksID    []string  `json:"tasks_id,omitempty" bson:"tasks_id"`
 		CreaterID  string    `json:"creater_id,omitempty" bson:"creater_id,omitempty"`
 		CreatedAt  time.Time `json:"created_at,omitempty" bson:"created_at,omitempty"`
 		UpdateAt   time.Time `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
@@ -45,6 +46,7 @@ type (
 		CreatedAt  time.Time `json:"created_at,omitempty"`
 		UpdateAt   time.Time `json:"updated_at,omitempty"`
 		ProjectsID []string  `json:"projects_id,omitempty" bson:"projects_id"`
+		TasksID    []string  `json:"tasks_id,omitempty" bson:"tasks_id"`
 	}
 )
 

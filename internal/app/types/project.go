@@ -89,4 +89,13 @@ type (
 	AddHolidayRequest struct {
 		HolidayID string `json:"holiday_id" validate:"required" `
 	}
+
+	UnAssignDev struct {
+		TaskID string `json:"task_id" validate:"required"`
+	}
+
+	AssignDev struct {
+		TaskID string `json:"task_id" validate:"required" `
+		UserID string `json:"user_id" validate:"required" `
+	}
 )

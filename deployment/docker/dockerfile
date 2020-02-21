@@ -4,5 +4,8 @@ WORKDIR /home/
 COPY gotasma.bin ./
 RUN chmod +x gotasma.bin
 
+COPY configs ./configs
+
 EXPOSE 8080
 CMD ["./gotasma.bin"]
+

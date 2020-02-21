@@ -57,7 +57,8 @@ func (s *Service) Create(ctx context.Context, req *types.HolidayRequest) (*types
 
 	if err := validator.Validate(req); err != nil {
 		logrus.Error("Failed to validate input create holiday %v", err)
-		return nil, err
+		validateErr := err.Error()
+		return nil, fmt.Errorf(validateErr+"err: %w", status.Gen().BadRequest)
 	}
 
 	//Duration >= 1 day
@@ -103,7 +104,8 @@ func (s *Service) Update(ctx context.Context, id string, req *types.HolidayReque
 	//Validate [input]
 	if err := validator.Validate(req); err != nil {
 		logrus.Error("Failed to validate input update holiday %v", err)
-		return nil, err
+		validateErr := err.Error()
+		return nil, fmt.Errorf(validateErr+"err: %w", status.Gen().BadRequest)
 	}
 
 	holidayDuration := ((req.End - req.Start) / MilisecondInDay)

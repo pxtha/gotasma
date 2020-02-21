@@ -16,7 +16,7 @@ import (
 type (
 	service interface {
 		Register(ctx context.Context, req *types.RegisterRequest) (*types.User, error)
-		//Find users that role is Dev, also show PM info of those devs
+		// Find users that role is Dev, also show PM info of those devs
 		FindAllDev(ctx context.Context) ([]*types.UserInfo, error)
 		CreateDev(ctx context.Context, req *types.RegisterRequest) (*types.User, error)
 		Delete(ctx context.Context, id string) error

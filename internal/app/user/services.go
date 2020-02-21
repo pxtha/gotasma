@@ -26,8 +26,10 @@ type (
 		FindByID(ctx context.Context, UserID string) (*types.User, error)
 		FindByProjectID(ctx context.Context, projectID string) ([]*types.User, error)
 
-		//Assign or remove project from user
+		// Assign or remove project from user
 		UpdateProjectsID(ctx context.Context, userID string, projectID string, addToSet bool) error
+		// Assign or remove task from user
+		UpdateTasksID(ctx context.Context, userID string, taskID string, addToSet bool) error
 	}
 
 	PolicyService interface {
@@ -51,8 +53,7 @@ func (s *Service) Register(ctx context.Context, req *types.RegisterRequest) (*ty
 
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to register PM due to invalid req, %w", err)
-		validateErr := err.Error()
-		return nil, fmt.Errorf(validateErr+"err: %w", status.Gen().BadRequest)
+		return nil, fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
 	}
 
 	existingUser, err := s.repo.FindByEmail(ctx, req.Email)
@@ -102,8 +103,7 @@ func (s *Service) CreateDev(ctx context.Context, req *types.RegisterRequest) (*t
 	}
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to register DEV due to invalid req, %v", err)
-		validateErr := err.Error()
-		return nil, fmt.Errorf(validateErr+"err: %w", status.Gen().BadRequest)
+		return nil, fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
 	}
 
 	existingUser, err := s.repo.FindByEmail(ctx, req.Email)
@@ -212,6 +212,7 @@ func (s *Service) FindAllDev(ctx context.Context) ([]*types.UserInfo, error) {
 			CreatedAt:  usr.CreatedAt,
 			UpdateAt:   usr.UpdateAt,
 			ProjectsID: usr.ProjectsID,
+			TasksID:    usr.TasksID,
 		})
 	}
 	return info, nil
@@ -232,12 +233,14 @@ func (s *Service) FindByProjectID(ctx context.Context, projectID string) ([]*typ
 			CreaterID:  user.CreaterID,
 			CreatedAt:  user.CreatedAt,
 			ProjectsID: user.ProjectsID,
+			TasksID:    user.TasksID,
+			UpdateAt:   user.UpdateAt,
 		})
 	}
 	return info, err
 }
 
-// RemoveProject Mange project ids of each user
+// Mange project ids of each user
 func (s *Service) RemoveProject(ctx context.Context, userID string, projectID string) error {
 
 	users, err := s.repo.FindByProjectID(ctx, projectID)
@@ -283,7 +286,7 @@ func (s *Service) RemoveProject(ctx context.Context, userID string, projectID st
 	return err
 }
 
-func (s *Service) AssignProject(ctx context.Context, userID string, projectID string) error {
+func (s *Service) AddProject(ctx context.Context, userID string, projectID string) error {
 
 	user, err := s.repo.FindByID(ctx, userID)
 	if err != nil && !db.IsErrNotFound(err) {
@@ -308,4 +311,44 @@ func (s *Service) AssignProject(ctx context.Context, userID string, projectID st
 	}
 
 	return s.repo.UpdateProjectsID(ctx, userID, projectID, true)
+}
+
+// Manage tasks_id of each user
+func (s *Service) AddTask(ctx context.Context, projectID string, req *types.AssignDev) error {
+
+	user, err := s.repo.FindByID(ctx, req.UserID)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Error("Failed to check existing user by id %w", err)
+		return fmt.Errorf("Failed to check existing user by id: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Error("User not found")
+		return status.User().NotFoundUser
+	}
+	//Check user in project
+	hasProject := false
+	for _, project := range user.ProjectsID {
+		if project == projectID {
+			hasProject = true
+		}
+	}
+	if !hasProject {
+		logrus.Errorf("This proecjt: %v not has this user: %v", projectID, req.UserID)
+		return status.User().NotFoundProject
+	}
+	//Check user already has this task
+	hasTask := false
+	for _, task := range user.TasksID {
+		if task == req.TaskID {
+			hasTask = true
+		}
+	}
+	if hasTask {
+		logrus.Errorf("This task: %v already assign to this user: %v", req.UserID, req.TaskID)
+		return status.User().AlreadyInTask
+	}
+
+	return s.repo.UpdateTasksID(ctx, req.UserID, req.TaskID, true)
 }
