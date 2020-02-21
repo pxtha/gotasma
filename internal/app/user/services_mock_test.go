@@ -9,7 +9,6 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-
 	types "github.com/gotasma/internal/app/types"
 )
 
@@ -49,6 +48,20 @@ func (m *MockRepository) Create(arg0 context.Context, arg1 *types.User) (string,
 func (mr *MockRepositoryMockRecorder) Create(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockRepository)(nil).Create), arg0, arg1)
+}
+
+// Delete mocks base method
+func (m *MockRepository) Delete(cxt context.Context, id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Delete", cxt, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Delete indicates an expected call of Delete
+func (mr *MockRepositoryMockRecorder) Delete(cxt, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockRepository)(nil).Delete), cxt, id)
 }
 
 // FindByEmail mocks base method
@@ -96,20 +109,6 @@ func (mr *MockRepositoryMockRecorder) FindDevsByID(ctx, userIDs interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindDevsByID", reflect.TypeOf((*MockRepository)(nil).FindDevsByID), ctx, userIDs)
 }
 
-// Delete mocks base method
-func (m *MockRepository) Delete(cxt context.Context, id string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", cxt, id)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Delete indicates an expected call of Delete
-func (mr *MockRepositoryMockRecorder) Delete(cxt, id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockRepository)(nil).Delete), cxt, id)
-}
-
 // FindByID mocks base method
 func (m *MockRepository) FindByID(ctx context.Context, UserID string) (*types.User, error) {
 	m.ctrl.T.Helper()
@@ -125,18 +124,33 @@ func (mr *MockRepositoryMockRecorder) FindByID(ctx, UserID interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByID", reflect.TypeOf((*MockRepository)(nil).FindByID), ctx, UserID)
 }
 
-// UpdateUserProjectsID mocks base method
-func (m *MockRepository) UpdateUserProjectsID(arg0 context.Context, arg1, arg2, arg3 string) error {
+// FindByProjectID mocks base method
+func (m *MockRepository) FindByProjectID(ctx context.Context, projectID string) ([]*types.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUserProjectsID", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "FindByProjectID", ctx, projectID)
+	ret0, _ := ret[0].([]*types.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindByProjectID indicates an expected call of FindByProjectID
+func (mr *MockRepositoryMockRecorder) FindByProjectID(ctx, projectID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByProjectID", reflect.TypeOf((*MockRepository)(nil).FindByProjectID), ctx, projectID)
+}
+
+// UpdateProjectsID mocks base method
+func (m *MockRepository) UpdateProjectsID(ctx context.Context, userID, projectID string, addToSet bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateProjectsID", ctx, userID, projectID, addToSet)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateUserProjectsID indicates an expected call of UpdateUserProjectsID
-func (mr *MockRepositoryMockRecorder) UpdateUserProjectsID(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+// UpdateProjectsID indicates an expected call of UpdateProjectsID
+func (mr *MockRepositoryMockRecorder) UpdateProjectsID(ctx, userID, projectID, addToSet interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserProjectsID", reflect.TypeOf((*MockRepository)(nil).UpdateUserProjectsID), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProjectsID", reflect.TypeOf((*MockRepository)(nil).UpdateProjectsID), ctx, userID, projectID, addToSet)
 }
 
 // MockPolicyService is a mock of PolicyService interface
