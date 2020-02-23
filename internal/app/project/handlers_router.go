@@ -99,5 +99,11 @@ func (h *Handler) Routes() []router.Route {
 			Handler:     h.AssignDev,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
+		{
+			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/tasks",
+			Method:      http.MethodDelete,
+			Handler:     h.UnAssignDev,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+		},
 	}
 }

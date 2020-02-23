@@ -11,7 +11,6 @@ import (
 	"github.com/gotasma/internal/pkg/db"
 	"github.com/gotasma/internal/pkg/uuid"
 	"github.com/gotasma/internal/pkg/validator"
-
 	"github.com/sirupsen/logrus"
 )
 
@@ -42,7 +41,8 @@ type (
 		RemoveProject(ctx context.Context, userID string, projectID string) error
 		FindByProjectID(ctx context.Context, projectID string) ([]*types.UserInfo, error)
 		// Tasks
-		AddTask(ctx context.Context, projectID string, req *types.AssignDev) error
+		AssignTask(ctx context.Context, projectID string, req *types.AssignDev) error
+		UnAssignTask(ctx context.Context, projectID string, req *types.UnAssignDev) error
 	}
 
 	HolidayService interface {
@@ -163,6 +163,15 @@ func (s *Service) Save(ctx context.Context, id string, req *types.SaveProject) (
 			if err := s.task.Delete(ctx, oldtask.TaskID); err != nil {
 				logrus.Errorf("Fail to delete tasks due to, %w", err)
 				return nil, fmt.Errorf("Fail to delete  tasks due to, %w", err)
+			}
+			//Remove task from dev
+			req := &types.UnAssignDev{
+				TaskID: oldtask.TaskID,
+				UserID: "_all_devs_",
+			}
+			if err := s.user.UnAssignTask(ctx, id, req); err != nil {
+				logrus.Errorf("Failed to update tasks_id in user info %v", err)
+				return nil, err
 			}
 		}
 	}
@@ -321,7 +330,6 @@ func (s *Service) Delete(ctx context.Context, projectID string) error {
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
 		return err
 	}
-
 	//Remove this project from all holiday
 	if err := s.holiday.RemoveProject(ctx, "_all_holiday_", projectID); err != nil {
 		logrus.Errorf("Fail to delete project due to %v", err)
@@ -332,6 +340,27 @@ func (s *Service) Delete(ctx context.Context, projectID string) error {
 	if err := s.user.RemoveProject(ctx, "_all_devs_", projectID); err != nil {
 		logrus.Errorf("Fail to delete project due to %v", err)
 		return fmt.Errorf("failed to remove project %v", err)
+	}
+	//Delete all tasks of project from db
+	//Remove all tasks of this project from devs
+	tasks, err := s.task.FindByProjectID(ctx, projectID)
+	if err != nil {
+		logrus.Errorf("Fail get all task of project to delete project, due to %v", err)
+		return fmt.Errorf("Fail to delete of all tasks of project %v", err)
+	}
+	for _, task := range tasks {
+		req := &types.UnAssignDev{
+			TaskID: task.TaskID,
+			UserID: "_all_devs_",
+		}
+		if err := s.user.UnAssignTask(ctx, projectID, req); err != nil {
+			logrus.Errorf("Failed to update tasks_id in user info %v", err)
+			return err
+		}
+		if err := s.task.Delete(ctx, task.TaskID); err != nil {
+			logrus.Errorf("Fail to delete tasks due to, %w", err)
+			return fmt.Errorf("Fail to delete  tasks due to, %w", err)
+		}
 	}
 
 	//Remove project, return err if project not exist
@@ -556,7 +585,7 @@ func (s *Service) AssignDev(ctx context.Context, projectID string, req *types.As
 	}
 
 	if err := validator.Validate(req); err != nil {
-		logrus.Errorf("Fail to add task to project due to invalid req, %w", err)
+		logrus.Errorf("Fail to assign task to user due to invalid req, %w", err)
 		return nil, fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
 	}
 
@@ -592,7 +621,58 @@ func (s *Service) AssignDev(ctx context.Context, projectID string, req *types.As
 	}
 
 	// Validate dev
-	if err := s.user.AddTask(ctx, projectID, req); err != nil {
+	if err := s.user.AssignTask(ctx, projectID, req); err != nil {
+		logrus.Errorf("Failed to update tasks_id in user info %v", err)
+		return nil, err
+	}
+
+	return req, nil
+}
+
+func (s *Service) UnAssignDev(ctx context.Context, projectID string, req *types.UnAssignDev) (*types.UnAssignDev, error) {
+
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return nil, err
+	}
+
+	if err := validator.Validate(req); err != nil {
+		logrus.Errorf("Fail to unassign task from user due to invalid req, %w", err)
+		return nil, fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
+	}
+
+	// Check project exist
+	project, err := s.mongo.FindByProjectID(ctx, projectID)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Errorf("failed to check existing project by ID: %v", err)
+		return nil, fmt.Errorf("failed to check existing project by ID: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Error("Project doesn't exist")
+		return nil, status.Project().NotFoundProject
+	}
+
+	// Validate task
+	task, err := s.task.FindByID(ctx, req.TaskID)
+
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Errorf("failed to check existing task by ID: %v", err)
+		return nil, fmt.Errorf("failed to check existing task by ID: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Error("Task doesn't exist")
+		return nil, status.Task().NotFoundTask
+	}
+
+	if task.ProjectID != project.ProjectID {
+		logrus.Error("Task not in project")
+		return nil, status.Task().NotInProject
+	}
+
+	// Validate dev
+	if err := s.user.UnAssignTask(ctx, projectID, req); err != nil {
 		logrus.Errorf("Failed to update tasks_id in user info %v", err)
 		return nil, err
 	}
