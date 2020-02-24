@@ -59,7 +59,6 @@ func (s *Service) FindByIDs(ctx context.Context, ids []string) ([]*types.TaskInf
 			Start: task.Start,
 		})
 	}
-
 	return tasks, nil
 }
 
