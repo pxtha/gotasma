@@ -27,6 +27,7 @@ type (
 		AlreadyInProject Status `yaml:"already_in_project"`
 		NotInProject     Status `yaml:"not_in_project"`
 		NotFoundDev      Status `yaml:"not_found_dev"`
+		ProjectCreater   Status `yaml:"creater_project"`
 	}
 
 	TaskStatus struct {
@@ -52,6 +53,7 @@ type (
 		DuplicatedEmail  Status `yaml:"duplicated_email"`
 		NotFoundUser     Status `yaml:"not_found_user"`
 		NotFoundProject  Status `yaml:"not_found_project"`
+		NotFoundTask     Status `yaml:"not_found_task"`
 		AlreadyInProject Status `yaml:"already_in_project"`
 		AlreadyInTask    Status `yaml:"already_in_task"`
 	}

@@ -7,10 +7,9 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
-
 	"github.com/gotasma/internal/app/types"
 	"github.com/gotasma/internal/pkg/http/respond"
+	"github.com/sirupsen/logrus"
 )
 
 type (

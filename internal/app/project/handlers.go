@@ -8,10 +8,9 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
-
 	"github.com/gotasma/internal/app/types"
 	"github.com/gotasma/internal/pkg/http/respond"
+	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -37,7 +36,8 @@ type (
 
 		//Tasks service
 		FindAllTasks(context.Context, string) ([]*types.Task, error)
-		AssignDev(ctx context.Context, projectID string, req *types.AssignDev) (*types.AssignDev, error)
+		AssignDev(ctx context.Context, projectID string, req *types.AssignDev) (*types.WorkLoadInfo, error)
+		UnAssignDev(ctx context.Context, projectID string, req *types.UnAssignDev) (*types.UnAssignDev, error)
 	}
 	Handler struct {
 		srv service
@@ -397,9 +397,40 @@ func (h *Handler) AssignDev(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	task, err := h.srv.AssignDev(r.Context(), projectID, &req)
+	workload, err := h.srv.AssignDev(r.Context(), projectID, &req)
 	if err != nil {
-		logrus.Errorf("Fail to assign task to project due to %v", err)
+		logrus.Errorf("Fail to assign task to user due to %v", err)
+		respond.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	respond.JSON(w, http.StatusOK, types.BaseResponse{
+		Data: workload,
+	})
+}
+
+func (h *Handler) UnAssignDev(w http.ResponseWriter, r *http.Request) {
+	projectID := mux.Vars(r)["project_id"]
+
+	if projectID == "" {
+		logrus.Errorf("Fail to assign task to user due to empty project ID")
+		respond.Error(w, fmt.Errorf("Project ID is not valid"), http.StatusBadRequest)
+		return
+	}
+
+	var req types.UnAssignDev
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logrus.Errorf("Fail to pasre JSON to assign task Request struct, %v", err)
+		respond.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	defer r.Body.Close()
+
+	task, err := h.srv.UnAssignDev(r.Context(), projectID, &req)
+	if err != nil {
+		logrus.Errorf("Fail to unassign task to user due to %v", err)
 		respond.Error(w, err, http.StatusInternalServerError)
 		return
 	}

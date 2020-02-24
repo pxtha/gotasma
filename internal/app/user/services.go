@@ -10,7 +10,6 @@ import (
 	"github.com/gotasma/internal/pkg/db"
 	"github.com/gotasma/internal/pkg/uuid"
 	"github.com/gotasma/internal/pkg/validator"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -36,16 +35,23 @@ type (
 		Validate(ctx context.Context, obj string, act string) error
 	}
 
+	WorkLoad interface {
+		Delete(ctx context.Context, projectID string, userID string) error
+		//FindByID(ctx context.Context, UserID string) ([]*types.WorkLoad, error)
+	}
+
 	Service struct {
-		repo   Repository
-		policy PolicyService
+		workload WorkLoad
+		repo     Repository
+		policy   PolicyService
 	}
 )
 
-func New(repo Repository, policy PolicyService) *Service {
+func New(repo Repository, policy PolicyService, workload WorkLoad) *Service {
 	return &Service{
-		repo:   repo,
-		policy: policy,
+		repo:     repo,
+		policy:   policy,
+		workload: workload,
 	}
 }
 
@@ -144,6 +150,20 @@ func (s *Service) CreateDev(ctx context.Context, req *types.RegisterRequest) (*t
 	return user.Strip(), nil
 }
 
+func (s *Service) FindByID(ctx context.Context, id string) (*types.User, error) {
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Errorf("failed to find user user by ID, err: %v", err)
+		return nil, err
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Errorf("User doesn't exist, err: %v", err)
+		return nil, status.User().NotFoundUser
+	}
+	return user, nil
+}
+
 func (s *Service) Delete(ctx context.Context, id string) error {
 
 	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
@@ -166,6 +186,11 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 		return status.Sercurity().InvalidAction
 	}
 
+	//Delele all devs workload
+	if err := s.workload.Delete(ctx, "_all_projects_", id); err != nil {
+		logrus.Error("Database error, Failed to delete all user's workload: %w", err)
+		return fmt.Errorf("Failed to delete all user's workload: %w", err)
+	}
 	return s.repo.Delete(ctx, id)
 }
 
@@ -243,47 +268,52 @@ func (s *Service) FindByProjectID(ctx context.Context, projectID string) ([]*typ
 // Mange project ids of each user
 func (s *Service) RemoveProject(ctx context.Context, userID string, projectID string) error {
 
-	users, err := s.repo.FindByProjectID(ctx, projectID)
 	if userID == "_all_devs_" {
 		//remove project from all holidays
+		users, err := s.repo.FindByProjectID(ctx, projectID)
+		if err != nil {
+			logrus.Error("Database error, Failed to remove project from user %w", err)
+			return fmt.Errorf("Failed to get user by ID project: %w", err)
+		}
 		for _, user := range users {
 			if err := s.repo.UpdateProjectsID(ctx, user.UserID, projectID, false); err != nil {
 				logrus.Error("Database error, Failed to remove project from user %w", err)
 				return fmt.Errorf("Failed to remove project from user: %w", err)
 			}
 		}
-	} else {
-		//remove this user from this project
-		//check user exist, is projectID in this user info?
-		user, err := s.repo.FindByID(ctx, userID)
-		if err != nil && !db.IsErrNotFound(err) {
-			logrus.Error("Failed to check existing user by id %w", err)
-			return fmt.Errorf("Failed to check existing user by id: %w", err)
-		}
+		return nil
+	}
+	//remove this user from this project
+	//check user exist, is projectID in this user info?
+	user, err := s.repo.FindByID(ctx, userID)
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Error("Failed to check existing user by id %w", err)
+		return fmt.Errorf("Failed to check existing user by id: %w", err)
+	}
 
-		if db.IsErrNotFound(err) {
-			logrus.Error("User not found")
-			return status.User().NotFoundUser
-		}
+	if db.IsErrNotFound(err) {
+		logrus.Error("User not found")
+		return status.User().NotFoundUser
+	}
 
-		hasProject := false
-		for _, project := range user.ProjectsID {
-			if project == projectID {
-				hasProject = true
-			}
-		}
-
-		if !hasProject {
-			logrus.Errorf("Project didn't have this user")
-			return status.User().NotFoundProject
-		}
-
-		if err := s.repo.UpdateProjectsID(ctx, userID, projectID, false); err != nil {
-			logrus.Error("Database error, Failed to remove project from user %w", err)
-			return fmt.Errorf("Failed to remove project from user: %w", err)
+	hasProject := false
+	for _, project := range user.ProjectsID {
+		if project == projectID {
+			hasProject = true
 		}
 	}
+
+	if !hasProject {
+		logrus.Errorf("Project didn't have this user")
+		return status.User().NotFoundProject
+	}
+
+	if err := s.repo.UpdateProjectsID(ctx, userID, projectID, false); err != nil {
+		logrus.Error("Database error, Failed to remove project from user %w", err)
+		return fmt.Errorf("Failed to remove project from user: %w", err)
+	}
 	return err
+
 }
 
 func (s *Service) AddProject(ctx context.Context, userID string, projectID string) error {
@@ -305,6 +335,7 @@ func (s *Service) AddProject(ctx context.Context, userID string, projectID strin
 			hasProject = true
 		}
 	}
+
 	if hasProject {
 		logrus.Errorf("Project already had this user")
 		return status.User().AlreadyInProject
@@ -314,7 +345,7 @@ func (s *Service) AddProject(ctx context.Context, userID string, projectID strin
 }
 
 // Manage tasks_id of each user
-func (s *Service) AddTask(ctx context.Context, projectID string, req *types.AssignDev) error {
+func (s *Service) AssignTask(ctx context.Context, projectID string, req *types.AssignDev) error {
 
 	user, err := s.repo.FindByID(ctx, req.UserID)
 
@@ -351,4 +382,57 @@ func (s *Service) AddTask(ctx context.Context, projectID string, req *types.Assi
 	}
 
 	return s.repo.UpdateTasksID(ctx, req.UserID, req.TaskID, true)
+}
+
+func (s *Service) UnAssignTask(ctx context.Context, projectID string, req *types.UnAssignDev) error {
+
+	if req.UserID == "_all_devs_" {
+		users, err := s.repo.FindByProjectID(ctx, projectID)
+		if err != nil {
+			logrus.Error("Failed to get users by ID project %w", err)
+			return fmt.Errorf("Failed to get users by ID project: %w", err)
+		}
+		for _, user := range users {
+			if err := s.repo.UpdateTasksID(ctx, user.UserID, req.TaskID, false); err != nil {
+				logrus.Error("Database error, Failed to remove task from user %w", err)
+				return fmt.Errorf("Failed to remove task from user: %w", err)
+			}
+		}
+		return nil
+	}
+	user, err := s.repo.FindByID(ctx, req.UserID)
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Error("Failed to check existing user by id %w", err)
+		return fmt.Errorf("Failed to check existing user by id: %w", err)
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Error("User not found")
+		return status.User().NotFoundUser
+	}
+	//Check user in project
+	hasProject := false
+	for _, project := range user.ProjectsID {
+		if project == projectID {
+			hasProject = true
+		}
+	}
+
+	if !hasProject {
+		logrus.Errorf("This proecjt: %v not has this user: %v", projectID, req.UserID)
+		return status.User().NotFoundProject
+	}
+	//Check user not has this task
+	hasTask := false
+	for _, task := range user.TasksID {
+		if task == req.TaskID {
+			hasTask = true
+		}
+	}
+	if !hasTask {
+		logrus.Errorf("This task: %v have not assigned to this user yet: %v", req.UserID, req.TaskID)
+		return status.User().NotFoundTask
+	}
+
+	return s.repo.UpdateTasksID(ctx, req.UserID, req.TaskID, false)
 }

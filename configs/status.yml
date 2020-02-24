@@ -45,6 +45,10 @@ user:
     code: 1340
     status: 400
     message: "Task already assign to this user"
+  not_found_task:
+    code: 1350
+    status: 400
+    message: "Task have not assign to this user yet"
 holiday:
   invalid_holiday:
     code: 1450
@@ -97,6 +101,10 @@ project:
     code: 1540
     status: 400
     message: "Dev not found in project"
+  creater_project:
+    code: 1550
+    status: 400
+    message: "This is creater of project"
 task:
   duplicated_task:
     code: 1600

@@ -17,8 +17,6 @@ services:
       - 9300:9300
     environment:
       - discovery.type=single-node
-    volumes:
-      - ../data:/usr/share/elasticsearch/data
     restart: always
 
   kibana:
@@ -63,7 +61,7 @@ services:
       - ../../configs:/home/praslar/Code/Workspace/src/github.com/gotasma/configs
       - ../scripts:/scripts
     working_dir: /home/praslar/Code/Workspace/src/github.com/gotasma
-    entrypoint: [ "sh", "-c", "/scripts/wait-for.sh elasticsearch:9200 -q --timeout=30 -- realize start" ]
+    entrypoint: [ "sh", "-c", "/scripts/wait-for.sh elasticsearch:9200 -q --timeout=40 -- realize start" ]
     depends_on:
       - mongodb
       - elasticsearch

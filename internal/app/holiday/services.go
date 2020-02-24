@@ -246,8 +246,12 @@ func (s *Service) AssignProject(ctx context.Context, holidayID string, projectID
 
 func (s *Service) RemoveProject(ctx context.Context, holidayID string, projectID string) error {
 
-	holidays, err := s.repo.FindByProjectID(ctx, projectID)
 	if holidayID == "_all_holiday_" {
+		holidays, err := s.repo.FindByProjectID(ctx, projectID)
+		if err != nil {
+			logrus.Error("Database error, Failed to get all holiday by project ID %w", err)
+			return fmt.Errorf("Database error, Failed to get all holiday by project ID: %w", err)
+		}
 		//remove project from all holidays
 		for _, holiday := range holidays {
 			if err := s.repo.UpdateProjectsID(ctx, holiday.HolidayID, projectID, false); err != nil {
@@ -255,34 +259,34 @@ func (s *Service) RemoveProject(ctx context.Context, holidayID string, projectID
 				return fmt.Errorf("Failed to remove project from holiday: %w", err)
 			}
 		}
-	} else {
-		//remove project from one holiday
-		//check holiday exist, is projectID in this holiday?
-		holiday, err := s.repo.FindByID(ctx, holidayID)
-		if err != nil && !db.IsErrNotFound(err) {
-			logrus.Error("Failed to check existing holiday by id %w", err)
-			return fmt.Errorf("Failed to check existing holiday by id: %w", err)
-		}
+		return nil
+	}
+	//remove project from one holiday
+	//check holiday exist, is projectID in this holiday?
+	holiday, err := s.repo.FindByID(ctx, holidayID)
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Error("Failed to check existing holiday by id %w", err)
+		return fmt.Errorf("Failed to check existing holiday by id: %w", err)
+	}
 
-		if db.IsErrNotFound(err) {
-			logrus.Error("Holiday not found")
-			return status.Holiday().NotFoundHoliday
-		}
+	if db.IsErrNotFound(err) {
+		logrus.Error("Holiday not found")
+		return status.Holiday().NotFoundHoliday
+	}
 
-		hasProject := false
-		for _, project := range holiday.ProjectsID {
-			if project == projectID {
-				hasProject = true
-			}
-		}
-		if !hasProject {
-			logrus.Errorf("Project didn't have this holiday")
-			return status.Holiday().NotFoundProject
-		}
-		if err := s.repo.UpdateProjectsID(ctx, holidayID, projectID, false); err != nil {
-			logrus.Error("Database error, Failed to remove project from holiday %w", err)
-			return fmt.Errorf("Failed to remove project from holiday: %w", err)
+	hasProject := false
+	for _, project := range holiday.ProjectsID {
+		if project == projectID {
+			hasProject = true
 		}
 	}
-	return err
+	if !hasProject {
+		logrus.Errorf("Project didn't have this holiday")
+		return status.Holiday().NotFoundProject
+	}
+	if err := s.repo.UpdateProjectsID(ctx, holidayID, projectID, false); err != nil {
+		logrus.Error("Database error, Failed to remove project from holiday %w", err)
+		return fmt.Errorf("Failed to remove project from holiday: %w", err)
+	}
+	return nil
 }

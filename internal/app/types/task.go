@@ -21,4 +21,10 @@ type (
 		UpdateAt         time.Time `json:"updated_at,omitempty" bson:"updated_at" validate:"required"`
 		CreatedAt        time.Time `json:"created_at,omitempty" bson:"created_at"`
 	}
+
+	TaskInfo struct {
+		Label string `json:"label,omitempty" bson:"label" validate:"required"`
+		Start int    `json:"start,omitempty" bson:"start" validate:"gt=1262304000000" validate:"required"`
+		End   int    `json:"end,omitempty" bson:"end"  validate:"gt=1262304000000" validate:"required"`
+	}
 )

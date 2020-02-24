@@ -22,8 +22,10 @@ func NewRouter() (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
+	taskSrv, err := newTaskService(policySrv)
+	workloadSrv, err := newWorkloadService(policySrv)
 	//=================User=====================
-	userSrv, err := newUserService(policySrv)
+	userSrv, err := newUserService(policySrv, workloadSrv)
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +38,7 @@ func NewRouter() (http.Handler, error) {
 	holidayHandler := newHolidayHandler(holidaySrv)
 
 	//===============Project====================
-	taskSrv, err := newTaskService(policySrv)
-	projectSrv, err := newProjectService(policySrv, holidaySrv, userSrv, taskSrv)
+	projectSrv, err := newProjectService(policySrv, holidaySrv, userSrv, taskSrv, workloadSrv)
 	if err != nil {
 		return nil, err
 	}
