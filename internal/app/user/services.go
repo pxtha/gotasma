@@ -214,10 +214,6 @@ func (s *Service) Auth(ctx context.Context, email, password string) (*types.User
 
 func (s *Service) FindAllDev(ctx context.Context) ([]*types.UserInfo, error) {
 
-	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
-		return nil, err
-	}
-
 	pm := auth.FromContext(ctx)
 
 	users, err := s.repo.FindAllDev(ctx, pm.UserID)
@@ -439,10 +435,6 @@ func (s *Service) UnAssignTask(ctx context.Context, projectID string, req *types
 
 // Find all workloads
 func (s *Service) FindWorkload(ctx context.Context, req *types.UsersWorkloadRequest) ([]*types.WorkLoad, error) {
-
-	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
-		return nil, err
-	}
 
 	if err := validator.Validate(req); err != nil {
 		logrus.Errorf("Fail to get workloads due to invalid req, %w", err)

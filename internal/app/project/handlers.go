@@ -9,10 +9,9 @@ import (
 
 	"github.com/gotasma/internal/app/types"
 	"github.com/gotasma/internal/pkg/http/respond"
-	
-	"github.com/sirupsen/logrus"
-	"github.com/gorilla/mux"
 
+	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -37,7 +36,7 @@ type (
 		FindAllHolidays(context.Context, string) ([]*types.HolidayInfo, error)
 
 		//Tasks service
-		FindAllTasks(context.Context, string) ([]*types.Task, error)
+		FindAllTasks(context.Context, string) ([]*types.TaskDetailInfo, error)
 		AssignDev(ctx context.Context, projectID string, req *types.AssignDev) (*types.WorkLoadInfo, error)
 		UnAssignDev(ctx context.Context, projectID string, req *types.UnAssignDev) (*types.WorkLoadInfo, error)
 	}

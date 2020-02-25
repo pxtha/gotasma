@@ -56,6 +56,7 @@ type (
 
 	TaskService interface {
 		FindByProjectID(ctx context.Context, projectID string) ([]*types.Task, error)
+		FindDetailByProjectID(ctx context.Context, projectID string) ([]*types.TaskDetailInfo, error)
 		FindByID(ctx context.Context, id string) (*types.Task, error)
 		FindByIDs(ctx context.Context, ids []string) ([]*types.TaskInfo, error)
 
@@ -602,9 +603,6 @@ func (s *Service) RemoveHoliday(ctx context.Context, req *types.RemoveHolidayReq
 
 func (s *Service) FindAllHolidays(ctx context.Context, projectID string) ([]*types.HolidayInfo, error) {
 
-	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
-		return nil, err
-	}
 	// Check project exist
 	_, err := s.mongo.FindByProjectID(ctx, projectID)
 
@@ -851,10 +849,11 @@ func (s *Service) AssignDev(ctx context.Context, projectID string, req *types.As
 		logrus.Errorf("Fail get all task of user in this project, due to %v", err)
 		return nil, fmt.Errorf("Fail get all task of user in this project,%v", err)
 	}
-
 	overload := make(map[int]int)
 	for i := 0; i < len(tasks)-1; i++ {
-		for j := 0; j < len(tasks); j++ {
+		logrus.Info("loop main", tasks[i])
+		for j := i + 1; j < len(tasks); j++ {
+			logrus.Info("loop child", tasks[j])
 			if tasks[i].End > tasks[j].Start && tasks[i].End < tasks[j].End {
 				overload[tasks[j].Start] = tasks[i].End
 			}
@@ -977,7 +976,7 @@ func (s *Service) UnAssignDev(ctx context.Context, projectID string, req *types.
 
 	overload := make(map[int]int)
 	for i := 0; i < len(tasks)-1; i++ {
-		for j := 0; j < len(tasks); j++ {
+		for j := i + 1; j < len(tasks); j++ {
 			if tasks[i].End > tasks[j].Start && tasks[i].End < tasks[j].End {
 				overload[tasks[j].Start] = tasks[i].End
 			}
@@ -1037,9 +1036,9 @@ func (s *Service) UnAssignDev(ctx context.Context, projectID string, req *types.
 
 func (s *Service) FindAllDevs(ctx context.Context, projectID string) ([]*types.UserInfo, error) {
 
-	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
-		return nil, err
-	}
+	// if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+	// 	return nil, err
+	// }
 	// Check project exist
 	_, err := s.mongo.FindByProjectID(ctx, projectID)
 
@@ -1064,11 +1063,11 @@ func (s *Service) FindAllDevs(ctx context.Context, projectID string) ([]*types.U
 }
 
 // Manage tasks
-func (s *Service) FindAllTasks(ctx context.Context, projectID string) ([]*types.Task, error) {
+func (s *Service) FindAllTasks(ctx context.Context, projectID string) ([]*types.TaskDetailInfo, error) {
 
-	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
-		return nil, err
-	}
+	// if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+	// 	return nil, err
+	// }
 	// Check project exist
 	_, err := s.mongo.FindByProjectID(ctx, projectID)
 
@@ -1082,9 +1081,9 @@ func (s *Service) FindAllTasks(ctx context.Context, projectID string) ([]*types.
 		return nil, status.Project().NotFoundProject
 	}
 
-	var info []*types.Task
+	var info []*types.TaskDetailInfo
 
-	info, err = s.task.FindByProjectID(ctx, projectID)
+	info, err = s.task.FindDetailByProjectID(ctx, projectID)
 	if err != nil {
 		logrus.Errorf("Fail to get tasks of project: %v", err)
 		return nil, fmt.Errorf("failed to get tasks of project: %w", err)

@@ -17,8 +17,6 @@ services:
       - 9300:9300
     environment:
       - discovery.type=single-node
-    volumes:
-      - ../data:/usr/share/elasticsearch/data
   
   kibana:
     image: kibana:7.6.0

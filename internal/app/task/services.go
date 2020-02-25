@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/gotasma/internal/app/auth"
 	"github.com/gotasma/internal/app/status"
@@ -11,6 +12,10 @@ import (
 	"github.com/gotasma/internal/pkg/validator"
 
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	MilisecondInDay = 86400000
 )
 
 type (
@@ -46,6 +51,27 @@ func (s *Service) FindByProjectID(ctx context.Context, projectID string) ([]*typ
 
 	return tasks, err
 }
+func (s *Service) FindDetailByProjectID(ctx context.Context, projectID string) ([]*types.TaskDetailInfo, error) {
+
+	tasks, err := s.repo.FindByProjectID(ctx, projectID)
+	tasksInfo := make([]*types.TaskDetailInfo, 0)
+	for _, task := range tasks {
+
+		tasksInfo = append(tasksInfo, &types.TaskDetailInfo{
+			TaskID:    task.TaskID,
+			Label:     task.Label,
+			End:       time.Unix(0, int64(task.End)*int64(time.Millisecond)),
+			Start:     time.Unix(0, int64(task.Start)*int64(time.Millisecond)),
+			CreatedAt: task.CreatedAt,
+			Duration:  task.Duration / MilisecondInDay,
+			Effort:    task.Effort,
+			Type:      task.Type,
+			UpdateAt:  task.UpdateAt,
+		})
+	}
+	return tasksInfo, err
+}
+
 func (s *Service) FindByIDs(ctx context.Context, ids []string) ([]*types.TaskInfo, error) {
 
 	tasks := make([]*types.TaskInfo, 0)
