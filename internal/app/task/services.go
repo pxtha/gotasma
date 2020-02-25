@@ -9,6 +9,7 @@ import (
 	"github.com/gotasma/internal/app/types"
 	"github.com/gotasma/internal/pkg/uuid"
 	"github.com/gotasma/internal/pkg/validator"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -54,9 +55,10 @@ func (s *Service) FindByIDs(ctx context.Context, ids []string) ([]*types.TaskInf
 			return nil, err
 		}
 		tasks = append(tasks, &types.TaskInfo{
-			Label: task.Label,
-			End:   task.End,
-			Start: task.Start,
+			TaskID: task.TaskID,
+			Label:  task.Label,
+			End:    task.End,
+			Start:  task.Start,
 		})
 	}
 	return tasks, nil

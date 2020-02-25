@@ -13,10 +13,11 @@ import (
 type (
 	mongoRepository interface {
 		FindByID(ctx context.Context, projectID string, userID string) (*types.WorkLoad, error)
+		FindByUserID(ctx context.Context, userID string) ([]*types.WorkLoad, error)
 
 		Create(context.Context, *types.WorkLoad) error
 		Delete(ctx context.Context, projectID string, userID string) error
-		Update(ctx context.Context, projectID string, userID string, overload map[int]int) error
+		Update(ctx context.Context, projectID string, userID string, overload []*types.Interval) error
 	}
 
 	PolicyService interface {
@@ -43,6 +44,13 @@ func (s *Service) FindByID(ctx context.Context, projectID string, userID string)
 	return workload, err
 }
 
+func (s *Service) FindByUserID(ctx context.Context, userID string) ([]*types.WorkLoad, error) {
+
+	workloads, err := s.repo.FindByUserID(ctx, userID)
+
+	return workloads, err
+}
+
 func (s *Service) Create(ctx context.Context, projectID string, userID string) error {
 
 	// Create new project
@@ -60,7 +68,7 @@ func (s *Service) Create(ctx context.Context, projectID string, userID string) e
 	return nil
 }
 
-func (s *Service) Update(ctx context.Context, projectID string, userID string, overload map[int]int) error {
+func (s *Service) Update(ctx context.Context, projectID string, userID string, overload []*types.Interval) error {
 
 	if err := s.repo.Update(ctx, projectID, userID, overload); err != nil {
 		logrus.Errorf("Fail to update workload due to %v", err)

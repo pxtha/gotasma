@@ -6,9 +6,10 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"github.com/gotasma/internal/app/types"
 	"github.com/gotasma/internal/pkg/http/respond"
+
+	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,6 +18,7 @@ type (
 		Register(ctx context.Context, req *types.RegisterRequest) (*types.User, error)
 		// Find users that role is Dev, also show PM info of those devs
 		FindAllDev(ctx context.Context) ([]*types.UserInfo, error)
+		FindWorkload(ctx context.Context, req *types.UsersWorkloadRequest) ([]*types.WorkLoad, error)
 		CreateDev(ctx context.Context, req *types.RegisterRequest) (*types.User, error)
 		Delete(ctx context.Context, id string) error
 	}
@@ -73,6 +75,27 @@ func (h *Handler) CreateDev(w http.ResponseWriter, r *http.Request) {
 	}
 	respond.JSON(w, http.StatusOK, types.BaseResponse{
 		Data: user,
+	})
+}
+
+func (h *Handler) FindWorkload(w http.ResponseWriter, r *http.Request) {
+	var req types.UsersWorkloadRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logrus.Errorf("Fail to parse JSON to get DEV worklaod Request struct, %w", err)
+		respond.Error(w, err, http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	workloads, err := h.srv.FindWorkload(r.Context(), &req)
+	if err != nil {
+		logrus.Errorf("Fail to find DEVs workloads, %w", err)
+		respond.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+	respond.JSON(w, http.StatusOK, types.BaseResponse{
+		Data: workloads,
 	})
 }
 

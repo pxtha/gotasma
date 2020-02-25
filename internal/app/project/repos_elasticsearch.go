@@ -3,7 +3,9 @@ package project
 import (
 	"context"
 	"errors"
+	"time"
 
+	"github.com/gotasma/internal/app/auth"
 	"github.com/gotasma/internal/app/types"
 
 	"github.com/sirupsen/logrus"
@@ -22,7 +24,10 @@ func NewElasticSearchRepository(client *elastic.Client) *ElasticSearchRepository
 	}
 }
 
-func (es *ElasticSearchRepository) IndexNewHistory(ctx context.Context, project *types.ProjectHistory) error {
+func (es *ElasticSearchRepository) IndexNewHistory(ctx context.Context, project *types.History) error {
+	userInfo := auth.FromContext(ctx)
+	project.CreatedAt = time.Now()
+	project.CreaterID = userInfo.UserID
 
 	exists, err := es.client.IndexExists("history").Do(ctx)
 	if err != nil {

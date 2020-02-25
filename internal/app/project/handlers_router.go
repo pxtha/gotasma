@@ -47,6 +47,7 @@ func (h *Handler) Routes() []router.Route {
 			Handler:     h.Update,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
+
 		//Manage devs of project
 		{
 			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/devs",
@@ -66,6 +67,7 @@ func (h *Handler) Routes() []router.Route {
 			Handler:     h.RemoveDev,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
+
 		//Manage holidays of project
 		{
 			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/holidays",
@@ -93,12 +95,14 @@ func (h *Handler) Routes() []router.Route {
 			Handler:     h.FindAllTasks,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
+		//assign task
 		{
 			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/tasks",
 			Method:      http.MethodPost,
 			Handler:     h.AssignDev,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
+		//unassign task
 		{
 			Path:        "/api/v1/projects/{project_id:[a-z0-9-\\-]+}/tasks",
 			Method:      http.MethodDelete,

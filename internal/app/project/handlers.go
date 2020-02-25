@@ -7,17 +7,19 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"github.com/gotasma/internal/app/types"
 	"github.com/gotasma/internal/pkg/http/respond"
+	
 	"github.com/sirupsen/logrus"
+	"github.com/gorilla/mux"
+
 )
 
 type (
 	service interface {
 		Create(ctx context.Context, req *types.CreateProjectRequest) (*types.Project, error)
-		Save(ctx context.Context, id string, req *types.SaveProject) (*types.ProjectHistory, error)
-		Update(ctx context.Context, id string, req *types.UpdateProject) (*types.ProjectHistory, error)
+		Save(ctx context.Context, id string, req *types.SaveProject) ([]*types.Task, error)
+		Update(ctx context.Context, id string, req *types.UpdateProject) (*types.UpdateProject, error)
 		Delete(ctx context.Context, id string) error
 
 		FindByID(context.Context, string) (*types.Project, error)
@@ -37,7 +39,7 @@ type (
 		//Tasks service
 		FindAllTasks(context.Context, string) ([]*types.Task, error)
 		AssignDev(ctx context.Context, projectID string, req *types.AssignDev) (*types.WorkLoadInfo, error)
-		UnAssignDev(ctx context.Context, projectID string, req *types.UnAssignDev) (*types.UnAssignDev, error)
+		UnAssignDev(ctx context.Context, projectID string, req *types.UnAssignDev) (*types.WorkLoadInfo, error)
 	}
 	Handler struct {
 		srv service
@@ -116,7 +118,6 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		Data: project,
 	})
 }
-
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	var req types.CreateProjectRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -136,7 +137,6 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		Data: project,
 	})
 }
-
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["project_id"]
 	if id == "" {
@@ -155,7 +155,6 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 }
-
 func (h *Handler) FindAll(w http.ResponseWriter, r *http.Request) {
 
 	projects, err := h.srv.FindAllProjects(r.Context())
@@ -170,7 +169,6 @@ func (h *Handler) FindAll(w http.ResponseWriter, r *http.Request) {
 		Data: projects,
 	})
 }
-
 func (h *Handler) FindByID(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["project_id"]

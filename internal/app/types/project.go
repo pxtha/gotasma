@@ -2,30 +2,6 @@ package types
 
 import "time"
 
-const (
-	Mapping = `
-	{
-		"settings":{
-			"number_of_shards":1,
-			"number_of_replicas":0
-		},
-		"mappings":{
-				"properties":{
-					"name"		 :{ "type":"keyword" },
-					"desc"		 :{ "type":"text"	 },
-					"project_id" :{ "type":"keyword" },
-					"creater_id" :{ "type":"keyword" },
-					"devs_id"	 :{ "type":"keyword" },
-					"tasks"		 :{ "type":"nested"	 },
-					"created_at" :{ "type":"date" 	 },
-					"updated_at" :{ "type":"date"	 },
-					"highlight"	 :{ "type":"boolean" },
-					"holidays_id":{	"type":"keyword" }
-				}
-			}
-	}`
-)
-
 type (
 	Project struct {
 		Name      string    `json:"name,omitempty" bson:"name"`
@@ -35,17 +11,6 @@ type (
 		CreatedAt time.Time `json:"created_at,omitempty" bson:"created_at"`
 		UpdateAt  time.Time `json:"updated_at,omitempty" bson:"updated_at"`
 		Highlight bool      `json:"highlight,omitempty" bson:"highlight"`
-	}
-
-	ProjectHistory struct {
-		Name      string    `json:"name,omitempty" bson:"name"`
-		Desc      string    `json:"desc,omitempty" bson:"desc"`
-		ProjectID string    `json:"project_id,omitempty" bson:"project_id"`
-		CreaterID string    `json:"creater_id,omitempty" bson:"creater_id"`
-		Action    string    `json:"action,omitempty" bson:"action"`
-		CreatedAt time.Time `json:"created_at,omitempty" bson:"created_at"`
-		UpdateAt  time.Time `json:"updated_at,omitempty" bson:"updated_at"`
-		Highlight bool      `json:"highlight" bson:"highlight"`
 	}
 
 	ProjectInfo struct {

@@ -14,6 +14,10 @@ type (
 
 	ProjectID string
 
+	UsersWorkloadRequest struct {
+		UserID string `json:"user_id" validate:"required"`
+	}
+
 	User struct {
 		UserID     string    `json:"user_id,omitempty" bson:"user_id,omitempty"`
 		Email      string    `json:"email,omitempty" bson:"email,omitempty"`

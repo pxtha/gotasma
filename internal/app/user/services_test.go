@@ -24,8 +24,9 @@ type (
 func before(t *testing.T) (*MockRepository, *MockPolicyService, *user.Service) {
 	mockRepo := NewMockRepository(gomock.NewController(t))
 	mockPolicy := NewMockPolicyService(gomock.NewController(t))
+	mockWorkload := NewMockWorkLoad(gomock.NewController(t))
 	//TODO mock project srv
-	services := user.New(mockRepo, mockPolicy)
+	services := user.New(mockRepo, mockPolicy, mockWorkload)
 	status.Init("../../../configs/status.yml")
 	return mockRepo, mockPolicy, services
 }

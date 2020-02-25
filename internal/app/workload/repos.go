@@ -34,6 +34,19 @@ func (r *MongoDBRepository) FindByID(ctx context.Context, projectID string, user
 	return workload, nil
 }
 
+func (r *MongoDBRepository) FindByUserID(ctx context.Context, userID string) ([]*types.WorkLoad, error) {
+	selector := bson.M{"user_id": userID}
+	s := r.session.Clone()
+	defer s.Close()
+
+	var workloads []*types.WorkLoad
+
+	if err := r.collection(s).Find(selector).All(&workloads); err != nil {
+		return nil, err
+	}
+	return workloads, nil
+}
+
 func (r *MongoDBRepository) Create(ctx context.Context, workload *types.WorkLoad) error {
 
 	s := r.session.Clone()
@@ -45,7 +58,7 @@ func (r *MongoDBRepository) Create(ctx context.Context, workload *types.WorkLoad
 	return r.collection(s).Insert(workload)
 }
 
-func (r *MongoDBRepository) Update(ctx context.Context, projectID string, userID string, overload map[int]int) error {
+func (r *MongoDBRepository) Update(ctx context.Context, projectID string, userID string, overload []*types.Interval) error {
 	s := r.session.Clone()
 	defer s.Close()
 

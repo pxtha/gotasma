@@ -33,5 +33,12 @@ func (h *Handler) Routes() []router.Route {
 			Handler:     h.Delete,
 			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
 		},
+		{
+			//DEV devs - get all devs of project - get project info
+			Path:        "/api/v1/devs/{user_id:[a-z0-9-\\-]+}/workloads",
+			Method:      http.MethodGet,
+			Handler:     h.FindWorkload,
+			Middlewares: []router.Middleware{auth.RequiredAuthMiddleware},
+		},
 	}
 }

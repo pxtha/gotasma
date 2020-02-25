@@ -10,6 +10,7 @@ import (
 	"github.com/gotasma/internal/pkg/db"
 	"github.com/gotasma/internal/pkg/uuid"
 	"github.com/gotasma/internal/pkg/validator"
+
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -37,7 +38,7 @@ type (
 
 	WorkLoad interface {
 		Delete(ctx context.Context, projectID string, userID string) error
-		//FindByID(ctx context.Context, UserID string) ([]*types.WorkLoad, error)
+		FindByUserID(ctx context.Context, userID string) ([]*types.WorkLoad, error)
 	}
 
 	Service struct {
@@ -313,7 +314,6 @@ func (s *Service) RemoveProject(ctx context.Context, userID string, projectID st
 		return fmt.Errorf("Failed to remove project from user: %w", err)
 	}
 	return err
-
 }
 
 func (s *Service) AddProject(ctx context.Context, userID string, projectID string) error {
@@ -435,4 +435,35 @@ func (s *Service) UnAssignTask(ctx context.Context, projectID string, req *types
 	}
 
 	return s.repo.UpdateTasksID(ctx, req.UserID, req.TaskID, false)
+}
+
+// Find all workloads
+func (s *Service) FindWorkload(ctx context.Context, req *types.UsersWorkloadRequest) ([]*types.WorkLoad, error) {
+
+	if err := s.policy.Validate(ctx, types.PolicyObjectAny, types.PolicyActionAny); err != nil {
+		return nil, err
+	}
+
+	if err := validator.Validate(req); err != nil {
+		logrus.Errorf("Fail to get workloads due to invalid req, %w", err)
+		return nil, fmt.Errorf(err.Error()+"err: %w", status.Gen().BadRequest)
+	}
+
+	_, err := s.repo.FindByID(ctx, req.UserID)
+	if err != nil && !db.IsErrNotFound(err) {
+		logrus.Errorf("failed to find user user by ID, err: %v", err)
+		return nil, err
+	}
+
+	if db.IsErrNotFound(err) {
+		logrus.Errorf("User doesn't exist, err: %v", err)
+		return nil, status.User().NotFoundUser
+	}
+
+	workloads, err := s.workload.FindByUserID(ctx, req.UserID)
+	if err != nil {
+		logrus.Errorf("failed to find all workload of User by ID, err: %v", err)
+		return nil, err
+	}
+	return workloads, nil
 }
